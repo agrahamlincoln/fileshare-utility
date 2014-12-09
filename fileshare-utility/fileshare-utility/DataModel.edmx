@@ -1,0 +1,359 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+  <!-- EF Runtime content -->
+  <edmx:Runtime>
+    <!-- SSDL content -->
+    <edmx:StorageModels>
+      <Schema Namespace="Model.Store" Alias="Self" Provider="System.Data.SQLite" ProviderManifestToken="ISO8601" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+        <EntityContainer Name="ModelStoreContainer">
+          <EntitySet Name="computers" EntityType="Model.Store.computers" store:Type="Tables" />
+          <EntitySet Name="mappings" EntityType="Model.Store.mappings" store:Type="Tables" />
+          <EntitySet Name="master" EntityType="Model.Store.master" store:Type="Tables" />
+          <EntitySet Name="servers" EntityType="Model.Store.servers" store:Type="Tables" />
+          <EntitySet Name="shares" EntityType="Model.Store.shares" store:Type="Tables" />
+          <EntitySet Name="users" EntityType="Model.Store.users" store:Type="Tables" />
+          <AssociationSet Name="FK_mappings_0_0" Association="Model.Store.FK_mappings_0_0">
+            <End Role="users" EntitySet="users" />
+            <End Role="mappings" EntitySet="mappings" />
+          </AssociationSet>
+          <AssociationSet Name="FK_mappings_1_0" Association="Model.Store.FK_mappings_1_0">
+            <End Role="computers" EntitySet="computers" />
+            <End Role="mappings" EntitySet="mappings" />
+          </AssociationSet>
+          <AssociationSet Name="FK_mappings_2_0" Association="Model.Store.FK_mappings_2_0">
+            <End Role="shares" EntitySet="shares" />
+            <End Role="mappings" EntitySet="mappings" />
+          </AssociationSet>
+          <AssociationSet Name="FK_shares_0_0" Association="Model.Store.FK_shares_0_0">
+            <End Role="servers" EntitySet="servers" />
+            <End Role="shares" EntitySet="shares" />
+          </AssociationSet>
+        </EntityContainer>
+        <EntityType Name="computers">
+          <Key>
+            <PropertyRef Name="computerID" />
+          </Key>
+          <Property Name="computerID" Type="integer" Nullable="false" StoreGeneratedPattern="Identity" />
+          <Property Name="hostname" Type="nvarchar" MaxLength="15" />
+        </EntityType>
+        <EntityType Name="mappings">
+          <Key>
+            <PropertyRef Name="shareID" />
+            <PropertyRef Name="computerID" />
+            <PropertyRef Name="userID" />
+          </Key>
+          <Property Name="shareID" Type="integer" Nullable="false" />
+          <Property Name="computerID" Type="integer" Nullable="false" />
+          <Property Name="userID" Type="integer" Nullable="false" />
+          <Property Name="letter" Type="nvarchar" MaxLength="2" />
+          <Property Name="username" Type="nvarchar" />
+          <Property Name="date" Type="nvarchar" MaxLength="255" />
+        </EntityType>
+        <EntityType Name="master">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="integer" Nullable="false" StoreGeneratedPattern="Identity" />
+          <Property Name="setting" Type="nvarchar" />
+          <Property Name="value" Type="nvarchar" />
+        </EntityType>
+        <EntityType Name="servers">
+          <Key>
+            <PropertyRef Name="serverID" />
+          </Key>
+          <Property Name="serverID" Type="integer" Nullable="false" StoreGeneratedPattern="Identity" />
+          <Property Name="hostname" Type="nvarchar" MaxLength="15" />
+          <Property Name="active" Type="bit" Nullable="false" />
+          <Property Name="domain" Type="nvarchar" MaxLength="255" />
+          <Property Name="date" Type="nvarchar" MaxLength="255" />
+        </EntityType>
+        <EntityType Name="shares">
+          <Key>
+            <PropertyRef Name="shareID" />
+          </Key>
+          <Property Name="shareID" Type="integer" Nullable="false" StoreGeneratedPattern="Identity" />
+          <Property Name="serverID" Type="integer" Nullable="false" />
+          <Property Name="shareName" Type="nvarchar" MaxLength="255" />
+          <Property Name="active" Type="bit" Nullable="false" />
+        </EntityType>
+        <EntityType Name="users">
+          <Key>
+            <PropertyRef Name="userID" />
+          </Key>
+          <Property Name="userID" Type="integer" Nullable="false" StoreGeneratedPattern="Identity" />
+          <Property Name="username" Type="nvarchar" />
+        </EntityType>
+        <Association Name="FK_mappings_0_0">
+          <End Role="users" Type="Model.Store.users" Multiplicity="1" />
+          <End Role="mappings" Type="Model.Store.mappings" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="users">
+              <PropertyRef Name="userID" />
+            </Principal>
+            <Dependent Role="mappings">
+              <PropertyRef Name="userID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_mappings_1_0">
+          <End Role="computers" Type="Model.Store.computers" Multiplicity="1" />
+          <End Role="mappings" Type="Model.Store.mappings" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="computers">
+              <PropertyRef Name="computerID" />
+            </Principal>
+            <Dependent Role="mappings">
+              <PropertyRef Name="computerID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_mappings_2_0">
+          <End Role="shares" Type="Model.Store.shares" Multiplicity="1" />
+          <End Role="mappings" Type="Model.Store.mappings" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="shares">
+              <PropertyRef Name="shareID" />
+            </Principal>
+            <Dependent Role="mappings">
+              <PropertyRef Name="shareID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_shares_0_0">
+          <End Role="servers" Type="Model.Store.servers" Multiplicity="1" />
+          <End Role="shares" Type="Model.Store.shares" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="servers">
+              <PropertyRef Name="serverID" />
+            </Principal>
+            <Dependent Role="shares">
+              <PropertyRef Name="serverID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+      </Schema>
+    </edmx:StorageModels>
+    <!-- CSDL content -->
+    <edmx:ConceptualModels>
+      <Schema Namespace="Model" Alias="Self" p1:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:p1="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
+        <EntityContainer Name="DataEntities" p1:LazyLoadingEnabled="true">
+          <EntitySet Name="computers" EntityType="Model.computer" />
+          <EntitySet Name="mappings" EntityType="Model.mapping" />
+          <EntitySet Name="masters" EntityType="Model.master" />
+          <EntitySet Name="servers" EntityType="Model.server" />
+          <EntitySet Name="shares" EntityType="Model.share" />
+          <EntitySet Name="users" EntityType="Model.user" />
+          <AssociationSet Name="FK_mappings_1_0" Association="Model.FK_mappings_1_0">
+            <End Role="computers" EntitySet="computers" />
+            <End Role="mappings" EntitySet="mappings" />
+          </AssociationSet>
+          <AssociationSet Name="FK_mappings_0_0" Association="Model.FK_mappings_0_0">
+            <End Role="users" EntitySet="users" />
+            <End Role="mappings" EntitySet="mappings" />
+          </AssociationSet>
+          <AssociationSet Name="FK_mappings_2_0" Association="Model.FK_mappings_2_0">
+            <End Role="shares" EntitySet="shares" />
+            <End Role="mappings" EntitySet="mappings" />
+          </AssociationSet>
+          <AssociationSet Name="FK_shares_0_0" Association="Model.FK_shares_0_0">
+            <End Role="servers" EntitySet="servers" />
+            <End Role="shares" EntitySet="shares" />
+          </AssociationSet>
+        </EntityContainer>
+        <EntityType Name="computer">
+          <Key>
+            <PropertyRef Name="computerID" />
+          </Key>
+          <Property Name="computerID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="hostname" Type="String" MaxLength="15" Unicode="true" FixedLength="false" />
+          <NavigationProperty Name="mappings" Relationship="Model.FK_mappings_1_0" FromRole="computers" ToRole="mappings" />
+        </EntityType>
+        <EntityType Name="mapping">
+          <Key>
+            <PropertyRef Name="shareID" />
+            <PropertyRef Name="computerID" />
+            <PropertyRef Name="userID" />
+          </Key>
+          <Property Name="shareID" Type="Int64" Nullable="false" />
+          <Property Name="computerID" Type="Int64" Nullable="false" />
+          <Property Name="userID" Type="Int64" Nullable="false" />
+          <Property Name="letter" Type="String" MaxLength="2" Unicode="true" FixedLength="false" />
+          <Property Name="username" Type="String" MaxLength="2147483647" Unicode="true" FixedLength="false" />
+          <Property Name="date" Type="String" MaxLength="255" Unicode="true" FixedLength="false" />
+          <NavigationProperty Name="computer" Relationship="Model.FK_mappings_1_0" FromRole="mappings" ToRole="computers" />
+          <NavigationProperty Name="user" Relationship="Model.FK_mappings_0_0" FromRole="mappings" ToRole="users" />
+          <NavigationProperty Name="share" Relationship="Model.FK_mappings_2_0" FromRole="mappings" ToRole="shares" />
+        </EntityType>
+        <EntityType Name="master">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="setting" Type="String" MaxLength="2147483647" Unicode="true" FixedLength="false" />
+          <Property Name="value" Type="String" MaxLength="2147483647" Unicode="true" FixedLength="false" />
+        </EntityType>
+        <EntityType Name="server">
+          <Key>
+            <PropertyRef Name="serverID" />
+          </Key>
+          <Property Name="serverID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="hostname" Type="String" MaxLength="15" Unicode="true" FixedLength="false" />
+          <Property Name="active" Type="Boolean" Nullable="false" />
+          <Property Name="domain" Type="String" MaxLength="255" Unicode="true" FixedLength="false" />
+          <Property Name="date" Type="String" MaxLength="255" Unicode="true" FixedLength="false" />
+          <NavigationProperty Name="shares" Relationship="Model.FK_shares_0_0" FromRole="servers" ToRole="shares" />
+        </EntityType>
+        <EntityType Name="share">
+          <Key>
+            <PropertyRef Name="shareID" />
+          </Key>
+          <Property Name="shareID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="serverID" Type="Int64" Nullable="false" />
+          <Property Name="shareName" Type="String" MaxLength="255" Unicode="true" FixedLength="false" />
+          <Property Name="active" Type="Boolean" Nullable="false" />
+          <NavigationProperty Name="mappings" Relationship="Model.FK_mappings_2_0" FromRole="shares" ToRole="mappings" />
+          <NavigationProperty Name="server" Relationship="Model.FK_shares_0_0" FromRole="shares" ToRole="servers" />
+        </EntityType>
+        <EntityType Name="user">
+          <Key>
+            <PropertyRef Name="userID" />
+          </Key>
+          <Property Name="userID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="username" Type="String" MaxLength="2147483647" Unicode="true" FixedLength="false" />
+          <NavigationProperty Name="mappings" Relationship="Model.FK_mappings_0_0" FromRole="users" ToRole="mappings" />
+        </EntityType>
+        <Association Name="FK_mappings_1_0">
+          <End Role="computers" Type="Model.computer" Multiplicity="1" />
+          <End Role="mappings" Type="Model.mapping" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="computers">
+              <PropertyRef Name="computerID" />
+            </Principal>
+            <Dependent Role="mappings">
+              <PropertyRef Name="computerID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_mappings_0_0">
+          <End Role="users" Type="Model.user" Multiplicity="1" />
+          <End Role="mappings" Type="Model.mapping" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="users">
+              <PropertyRef Name="userID" />
+            </Principal>
+            <Dependent Role="mappings">
+              <PropertyRef Name="userID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_mappings_2_0">
+          <End Role="shares" Type="Model.share" Multiplicity="1" />
+          <End Role="mappings" Type="Model.mapping" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="shares">
+              <PropertyRef Name="shareID" />
+            </Principal>
+            <Dependent Role="mappings">
+              <PropertyRef Name="shareID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_shares_0_0">
+          <End Role="servers" Type="Model.server" Multiplicity="1" />
+          <End Role="shares" Type="Model.share" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="servers">
+              <PropertyRef Name="serverID" />
+            </Principal>
+            <Dependent Role="shares">
+              <PropertyRef Name="serverID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+      </Schema>
+    </edmx:ConceptualModels>
+    <!-- C-S mapping content -->
+    <edmx:Mappings>
+      <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
+        <EntityContainerMapping StorageEntityContainer="ModelStoreContainer" CdmEntityContainer="DataEntities">
+          <EntitySetMapping Name="computers">
+            <EntityTypeMapping TypeName="Model.computer">
+              <MappingFragment StoreEntitySet="computers">
+                <ScalarProperty Name="computerID" ColumnName="computerID" />
+                <ScalarProperty Name="hostname" ColumnName="hostname" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="mappings">
+            <EntityTypeMapping TypeName="Model.mapping">
+              <MappingFragment StoreEntitySet="mappings">
+                <ScalarProperty Name="shareID" ColumnName="shareID" />
+                <ScalarProperty Name="computerID" ColumnName="computerID" />
+                <ScalarProperty Name="userID" ColumnName="userID" />
+                <ScalarProperty Name="letter" ColumnName="letter" />
+                <ScalarProperty Name="username" ColumnName="username" />
+                <ScalarProperty Name="date" ColumnName="date" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="masters">
+            <EntityTypeMapping TypeName="Model.master">
+              <MappingFragment StoreEntitySet="master">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="setting" ColumnName="setting" />
+                <ScalarProperty Name="value" ColumnName="value" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="servers">
+            <EntityTypeMapping TypeName="Model.server">
+              <MappingFragment StoreEntitySet="servers">
+                <ScalarProperty Name="serverID" ColumnName="serverID" />
+                <ScalarProperty Name="hostname" ColumnName="hostname" />
+                <ScalarProperty Name="active" ColumnName="active" />
+                <ScalarProperty Name="domain" ColumnName="domain" />
+                <ScalarProperty Name="date" ColumnName="date" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="shares">
+            <EntityTypeMapping TypeName="Model.share">
+              <MappingFragment StoreEntitySet="shares">
+                <ScalarProperty Name="shareID" ColumnName="shareID" />
+                <ScalarProperty Name="serverID" ColumnName="serverID" />
+                <ScalarProperty Name="shareName" ColumnName="shareName" />
+                <ScalarProperty Name="active" ColumnName="active" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="users">
+            <EntityTypeMapping TypeName="Model.user">
+              <MappingFragment StoreEntitySet="users">
+                <ScalarProperty Name="userID" ColumnName="userID" />
+                <ScalarProperty Name="username" ColumnName="username" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+        </EntityContainerMapping>
+      </Mapping>
+    </edmx:Mappings>
+  </edmx:Runtime>
+  <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <Connection>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="MetadataArtifactProcessing" Value="EmbedInOutputAssembly" />
+      </DesignerInfoPropertySet>
+    </Connection>
+    <Options>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="ValidateOnBuild" Value="true" />
+        <DesignerProperty Name="EnablePluralization" Value="True" />
+        <DesignerProperty Name="IncludeForeignKeysInModel" Value="True" />
+        <DesignerProperty Name="CodeGenerationStrategy" Value="None" />
+      </DesignerInfoPropertySet>
+    </Options>
+    <!-- Diagram content (shape and connector positions) -->
+    <Diagrams></Diagrams>
+  </Designer>
+</edmx:Edmx>
