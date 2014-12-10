@@ -11,6 +11,9 @@ namespace fileshare_utility
 {
     class Program
     {
+        private const string LOG_SUBDIRECTORY = "\\logs";
+        private const string DATA_SUBDIRECTORY = "\\data";
+
         static void Main(string[] args)
         {
             #region Instantiation
@@ -26,6 +29,7 @@ namespace fileshare_utility
             // Database Entity Objects
             user CurrentUser;                       //User of person executing app
             computer CurrentComputer;               //Computer executing app
+            master UnmappedCount;                   //Number of fileshares unmapped
             #endregion
 
             #region Initialization
@@ -39,7 +43,7 @@ namespace fileshare_utility
             logger = new LogWriter();
             globalLog = new LogWriter("Log.txt");
 
-            globalLog.logPath = runningPath + "\\logs";
+            globalLog.logPath = runningPath + LOG_SUBDIRECTORY;
             logger.header();
             logger.Write("Global Log Path: " + globalLog.logPath);
 
@@ -56,20 +60,20 @@ namespace fileshare_utility
             }
 
             // Database Initialization
-            db = new DataContext();
-            if (!File.Exists(AppDomain.CurrentDomain.GetData("DataDirectory") + "\\data\\fileshare-utility.s3db"))
+            db = new DataContext(runningPath + LOG_SUBDIRECTORY);
+            if (!File.Exists(AppDomain.CurrentDomain.GetData("DataDirectory") + DATA_SUBDIRECTORY + "\\fileshare-utility.s3db"))
                 db.BuildDB();
 
             //Initialize Program Variables
             CurrentUser = db.getUser(Environment.UserName);
             CurrentComputer = db.getComputer(Environment.MachineName);
+            UnmappedCount = db.getMaster("UnmappedCount");
             #endregion
 
             //Add new user if not found
             if (CurrentUser == null)
             {
                 db.Insert<user>(new user(Environment.UserName));
-                globalLog.Write("Added new user to [users]: " + Environment.UserName);
                 CurrentUser = db.getUser(Environment.UserName);
             }
 
@@ -77,8 +81,13 @@ namespace fileshare_utility
             if (CurrentComputer == null)
             {
                 db.Insert<computer>(new computer(Environment.MachineName));
-                globalLog.Write("Added new computer to [computers]: " + Environment.MachineName);
                 CurrentComputer = db.getComputer(Environment.MachineName);
+            }
+
+            if (UnmappedCount == null)
+            {
+                db.Insert<master>(new master("UnmappedCount"));
+                UnmappedCount = db.getMaster("UnmappedCount");
             }
 
             // Make sure all shares are added to the DB
@@ -94,21 +103,22 @@ namespace fileshare_utility
                     ))
                 {
                     //server is not in current list.
-                    server dnsSrvr;
                     try
                     {
-                        dnsSrvr = server.dnslookup(NetCon.ServerName);
+                        server DNSserver = server.dnslookup(NetCon.ServerName);
 
                         //query database and add if necessary.
-                        var dbSrvr = db.getServer(dnsSrvr.hostname, dnsSrvr.domain);
+                        server DBserver = db.getServer(DNSserver.hostname, DNSserver.domain);
 
-                        if (dbSrvr == null)
+                        if (DBserver == null)
                         {
                             //server was not found; add to Database.
-                            db.Insert<server>(dnsSrvr);
-                            globalLog.Write("Added new Server to [servers]: " + dnsSrvr.hostname + dnsSrvr.domain);
+                            db.Insert<server>(DNSserver);
+                            DBserver = db.getServer(DNSserver.hostname, DNSserver.domain);
                         }
-                        servers.Add(db.getServer(dnsSrvr.hostname, dnsSrvr.domain));
+                        servers.Add(DBserver);
+
+                        DBserver.date = DateTime.Now.ToString();
                     }
                     catch (SocketException)
                     {
@@ -127,16 +137,28 @@ namespace fileshare_utility
                     x => x.hostname.Equals(NetCon.ServerName, StringComparison.OrdinalIgnoreCase)
                 );
 
+                if (!currentServer.active)
+                {
+                    NetCon.unmap();
+                    UnmappedCount.increment();
+                    logger.Write("Unmapping Fileshare: " + NetCon.ToString());
+                    continue;
+                }
+
                 share fileshare = db.getShare(currentServer.serverID, NetCon.ShareName);
 
                 if (fileshare == null)
                 {
                     fileshare = new share(currentServer, NetCon.ShareName);
                     db.Insert<share>(fileshare);
-                    globalLog.Write("Added new Share to [shares]: " + fileshare.server.hostname + "\\" + fileshare.shareName);
-
-                    //Re-Get the share
-                    fileshare = db.getShare(currentServer.serverID, NetCon.ShareName);
+                    fileshare = db.getShare(fileshare.serverID, fileshare.shareName);
+                }
+                else if (!fileshare.active)
+                {
+                    NetCon.unmap();
+                    UnmappedCount.increment();
+                    logger.Write("Unmapping Fileshare: " + NetCon.ToString());
+                    continue;
                 }
 
                 shares.Add(fileshare);
@@ -163,23 +185,12 @@ namespace fileshare_utility
                     map = new mapping(fileshare, CurrentUser, CurrentComputer, NetCon.LocalName, NetCon.UserName);
 
                     db.Insert<mapping>(map);
-                    logger.Write("Added new Mapping to [mappings]: " + CurrentUser.username + "@" + CurrentComputer.hostname + ": " + map.letter + ": " + map.share.server.hostname + "\\" + map.share.shareName);
-                    map = db.getMapping(fileshare.shareID, CurrentUser.userID, CurrentComputer.computerID);
+                    map = db.getMapping(map.shareID, map.userID, map.computerID);
+                    logger.Write("Added new Mapping to [mappings]: " + map.ToString());
                 }
 
+                map.date = DateTime.Now.ToString();
                 mappedList.Add(map);
-            }
-
-            //update date field on found servers and found mappings.
-            string now = DateTime.Now.ToString();
-            foreach (mapping map in mappedList)
-            {
-                map.date = now;
-            }
-
-            foreach (server srvr in servers)
-            {
-                srvr.date = now;
             }
 
             db.SaveChanges();

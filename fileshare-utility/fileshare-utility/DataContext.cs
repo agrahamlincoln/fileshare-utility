@@ -12,6 +12,13 @@ namespace fileshare_utility
     /// </summary>
     partial class DataContext
     {
+        private LogWriter dbLogger = new LogWriter("DBLog");
+
+        public DataContext(string logPath)
+            : this()
+        {
+            dbLogger.logPath = logPath;
+        }
 
         #region accessors
         /// <summary>
@@ -81,6 +88,13 @@ namespace fileshare_utility
                          x.computerID == computerID
                     );
         }
+
+        public master getMaster(string setting)
+        {
+            return masters.FirstOrDefault<master>(
+                    x => x.setting.ToUpper() == setting.ToUpper()
+                    );
+        }
         #endregion
 
         #region add
@@ -90,12 +104,12 @@ namespace fileshare_utility
         /// <typeparam name="T">Entity Class (computer; mapping; master; server; share; user)</typeparam>
         /// <param name="Entity">Entity Object</param>
         public void Insert<T>(T Entity)
-            where T: class
+            where T : class
         {
             Set<T>().Add(Entity);
+            dbLogger.Write("Added " + typeof(T).ToString() + " to [" + Set<T>().ToString() + "] :" + Entity.ToString());
             SaveChanges();
         }
-
         #endregion
 
         /// <summary>
