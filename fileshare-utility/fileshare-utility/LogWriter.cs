@@ -7,14 +7,17 @@ using System.Threading.Tasks;
 
 namespace fileshare_utility
 {
-    /// <summary>The LogWriter class will write to a log file. This log file is by default located in the user's AppData/Roaming Folder.
+    /// <summary>
+    /// The LogWriter class will write log entries to a text file. This log file is by default located in the user's AppData/Roaming Folder.
     /// </summary>
     public class LogWriter
     {
+        const string TIMESTAMP_FORMAT = "MM/dd HH:mm:ss";   // Format of Timestamp
+
         // Class Variables
-        public string logPath { get; set; }             // Path of the log file
-        public string fileName { get; set; }            // Filename of the log file
-        public string assemblyVersion { get; set; }     // Assembly Version of the current running executable
+        public string logPath { get; set; }                 // Path of the log file
+        public string fileName { get; set; }                // Filename of the log file
+        private string assemblyVersion { get; set; }         // Assembly Version of the current running executable
 
         #region Constructors
         /// <summary>No-Arg Constructor
@@ -25,12 +28,7 @@ namespace fileshare_utility
         /// <summary>Single Argument Constructor
         /// </summary>
         /// <param name="filepath">Path of the log file</param>
-        public LogWriter(string filepath)
-        {
-            this.logPath = filepath;
-            this.fileName = getProcessName() + "_log.txt";
-            this.assemblyVersion = getVersion();
-        }
+        public LogWriter(string filepath) : this(getAppDataPath(), getProcessName() + "_log.txt") { }
 
         /// <summary>Two-Argument Constructor
         /// </summary>
@@ -72,7 +70,7 @@ namespace fileshare_utility
         #endregion
 
         #region Log writing
-        const string TIMESTAMP_FORMAT = "MM/dd HH:mm:ss";
+
 
         /// <summary>Returns a timestamp in string format.
         /// </summary>

@@ -13,45 +13,38 @@ namespace fileshare_utility
     {
         static void Main(string[] args)
         {
-            //Program Variables
-            LogWriter logger = new LogWriter();                                     // Run-Time log
-            LogWriter globalLog = new LogWriter("Log.txt");                         // Unmapped/Discovered Drive log
-            string runningPath;                                                     // Path of executed application
-            List<NetworkConnection> mappedDrives = new List<NetworkConnection>();   // List of Mapped Network Drives
+            #region Instantiation
+            // Program Variables
+            LogWriter logger;                       // Run-Time log
+            LogWriter globalLog;                    // Unmapped/Discovered Drive log
+            string runningPath;                     // Path of executed application
+            List<NetworkConnection> mappedDrives;   // List of Mapped Network Drives
 
-            //Entity Framework Objects
-            DataContext db = new DataContext();                                     // Entity Framework Context
-            DataOperator dataOper = new DataOperator(db);                           // For Mutators and Accessors
+            // Entity Framework Objects
+            DataContext db;                         // Entity Framework Context
 
-            //Database Entity Objects
-            user CurrentUser;           //User of person executing app
-            computer CurrentComputer;   //Computer executing app
+            // Database Entity Objects
+            user CurrentUser;                       //User of person executing app
+            computer CurrentComputer;               //Computer executing app
+            #endregion
 
-            //Initialize Program Variables
+            #region Initialization
+            // Directory Initialization
             runningPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            CreateSubdirectoryIfNoExists("logs");
+            CreateSubdirectoryIfNoExists("data");
+            AppDomain.CurrentDomain.SetData("DataDirectory", runningPath);
+
+            // Logger Initialization
+            logger = new LogWriter();
+            globalLog = new LogWriter("Log.txt");
+
             globalLog.logPath = runningPath + "\\logs";
             logger.header();
-            logger.Write("logpath: " + globalLog.logPath);
-            CurrentUser = dataOper.getUser(Environment.UserName);
-            CurrentComputer = dataOper.getComputer(Environment.MachineName);
+            logger.Write("Global Log Path: " + globalLog.logPath);
 
-            //Add new user if not found
-            if (CurrentUser == null)
-            {
-                dataOper.Insert<user>(new user(Environment.UserName));
-                globalLog.Write("Added new user to [users]: " + Environment.UserName);
-                CurrentUser = dataOper.getUser(Environment.UserName);
-            }
-
-            //Add new computer if not found
-            if (CurrentComputer == null)
-            {
-                dataOper.Insert<computer>(new computer(Environment.MachineName));
-                globalLog.Write("Added new computer to [computers]: " + Environment.MachineName);
-                CurrentComputer = dataOper.getComputer(Environment.MachineName);
-            }
-
-            //Get List of Network Connections from WMI
+            // Get Mapped Drives
+            mappedDrives = new List<NetworkConnection>();
             try
             {
                 mappedDrives = NetworkConnection.ListCurrentlyMappedDrives();
@@ -60,6 +53,32 @@ namespace fileshare_utility
             {
                 logger.Write(crap.ToString());
                 Environment.Exit(0);
+            }
+
+            // Database Initialization
+            db = new DataContext();
+            if (!File.Exists(AppDomain.CurrentDomain.GetData("DataDirectory") + "\\data\\fileshare-utility.s3db"))
+                db.BuildDB();
+
+            //Initialize Program Variables
+            CurrentUser = db.getUser(Environment.UserName);
+            CurrentComputer = db.getComputer(Environment.MachineName);
+            #endregion
+
+            //Add new user if not found
+            if (CurrentUser == null)
+            {
+                db.Insert<user>(new user(Environment.UserName));
+                globalLog.Write("Added new user to [users]: " + Environment.UserName);
+                CurrentUser = db.getUser(Environment.UserName);
+            }
+
+            //Add new computer if not found
+            if (CurrentComputer == null)
+            {
+                db.Insert<computer>(new computer(Environment.MachineName));
+                globalLog.Write("Added new computer to [computers]: " + Environment.MachineName);
+                CurrentComputer = db.getComputer(Environment.MachineName);
             }
 
             // Make sure all shares are added to the DB
@@ -71,7 +90,7 @@ namespace fileshare_utility
                 logger.Write("Now Processing: " + NetCon.ToString());
 
                 if (!servers.Exists(
-                    x => x.hostname.Equals(NetCon.ServerName, StringComparison.OrdinalIgnoreCase)
+                    x => x.hostname.ToUpper() == NetCon.ServerName.ToUpper()
                     ))
                 {
                     //server is not in current list.
@@ -81,15 +100,15 @@ namespace fileshare_utility
                         dnsSrvr = server.dnslookup(NetCon.ServerName);
 
                         //query database and add if necessary.
-                        var dbSrvr = dataOper.getServer(dnsSrvr.hostname, dnsSrvr.domain);
+                        var dbSrvr = db.getServer(dnsSrvr.hostname, dnsSrvr.domain);
 
                         if (dbSrvr == null)
                         {
                             //server was not found; add to Database.
-                            dataOper.Insert<server>(dnsSrvr);
+                            db.Insert<server>(dnsSrvr);
                             globalLog.Write("Added new Server to [servers]: " + dnsSrvr.hostname + dnsSrvr.domain);
                         }
-                        servers.Add(dataOper.getServer(dnsSrvr.hostname, dnsSrvr.domain));
+                        servers.Add(db.getServer(dnsSrvr.hostname, dnsSrvr.domain));
                     }
                     catch (SocketException)
                     {
@@ -108,16 +127,16 @@ namespace fileshare_utility
                     x => x.hostname.Equals(NetCon.ServerName, StringComparison.OrdinalIgnoreCase)
                 );
 
-                share fileshare = dataOper.getShare(currentServer.serverID, NetCon.ShareName);
+                share fileshare = db.getShare(currentServer.serverID, NetCon.ShareName);
 
                 if (fileshare == null)
                 {
                     fileshare = new share(currentServer, NetCon.ShareName);
-                    dataOper.Insert<share>(fileshare);
+                    db.Insert<share>(fileshare);
                     globalLog.Write("Added new Share to [shares]: " + fileshare.server.hostname + "\\" + fileshare.shareName);
 
                     //Re-Get the share
-                    fileshare = dataOper.getShare(currentServer.serverID, NetCon.ShareName);
+                    fileshare = db.getShare(currentServer.serverID, NetCon.ShareName);
                 }
 
                 shares.Add(fileshare);
@@ -138,14 +157,14 @@ namespace fileshare_utility
                 if (map == null)
                 {
                     NetworkConnection NetCon = mappedDrives.Find(
-                        x => x.ServerName.Equals(fileshare.server.hostname, StringComparison.OrdinalIgnoreCase) &&
-                             x.ShareName.Equals(fileshare.shareName, StringComparison.OrdinalIgnoreCase)
+                        x => x.ServerName.ToUpper() == fileshare.server.hostname.ToUpper() &&
+                             x.ShareName.ToUpper() == fileshare.shareName.ToUpper()
                         );
                     map = new mapping(fileshare, CurrentUser, CurrentComputer, NetCon.LocalName, NetCon.UserName);
 
-                    dataOper.Insert<mapping>(map);
+                    db.Insert<mapping>(map);
                     logger.Write("Added new Mapping to [mappings]: " + CurrentUser.username + "@" + CurrentComputer.hostname + ": " + map.letter + ": " + map.share.server.hostname + "\\" + map.share.shareName);
-                    map = dataOper.getMapping(fileshare.shareID, CurrentUser.userID, CurrentComputer.computerID);
+                    map = db.getMapping(fileshare.shareID, CurrentUser.userID, CurrentComputer.computerID);
                 }
 
                 mappedList.Add(map);
@@ -164,6 +183,17 @@ namespace fileshare_utility
             }
 
             db.SaveChanges();
+        }
+
+        /// <summary>
+        /// Creates a Subdirectory under the running program if none exists
+        /// </summary>
+        /// <param name="name">name of the subdirectory to create</param>
+        public static void CreateSubdirectoryIfNoExists(string name)
+        {
+            string runningPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            if (!Directory.Exists(runningPath + "\\" + name))
+                Directory.CreateDirectory(runningPath + "\\" + name);
         }
     }
 }

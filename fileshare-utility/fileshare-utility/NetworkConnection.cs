@@ -109,7 +109,8 @@ namespace fileshare_utility
             return drivesFromWMI;
         }
 
-        /// <summary>Unmaps the drive using core windows API's
+        /// <summary>
+        /// Unmaps the drive using core windows API's
         /// </summary>
         /// <remarks>This code was used from aejw's Network Drive class: build 0015 05/14/2004 aejw.com</remarks>
         internal void unmap()
@@ -132,6 +133,10 @@ namespace fileshare_utility
             return str;
         }
 
+        /// <summary>
+        /// Formats the server name and share name into a full fileshare path
+        /// </summary>
+        /// <returns>Full fileshare path</returns>
         internal string getRemoteName()
         {
             return "\\\\" + ServerName + "\\" + ShareName;

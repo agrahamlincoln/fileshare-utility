@@ -8,9 +8,15 @@ using System.Threading.Tasks;
 
 namespace fileshare_utility
 {
-
+    /// <summary>
+    /// Computer Entity - Built by Entity Framework
+    /// </summary>
     partial class computer
     {
+        /// <summary>
+        /// Single-Arg Constructor
+        /// </summary>
+        /// <param name="hostname">Hostname of the computer</param>
         public computer(string hostname)
             : this()
         {
@@ -18,6 +24,9 @@ namespace fileshare_utility
         }
     }
 
+    /// <summary>
+    /// Server Entity - Built by Entity Framework
+    /// </summary>
     partial class server
     {
         /// <summary>
@@ -34,6 +43,11 @@ namespace fileshare_utility
             this.shares = srvr.shares;
         }
 
+        /// <summary>
+        /// Two-Arg Constructor
+        /// </summary>
+        /// <param name="hostname">Hostname of server</param>
+        /// <param name="domain">Domain the server belongs to</param>
         public server(string hostname, string domain)
             : this()
         {
@@ -74,6 +88,11 @@ namespace fileshare_utility
 
     partial class share
     {
+        /// <summary>
+        /// Two-Arg constructor
+        /// </summary>
+        /// <param name="currServer">Server Object that the share belongs to</param>
+        /// <param name="shareName">Shared name of the share</param>
         public share(server currServer, string shareName)
             : this()
         {
@@ -86,6 +105,10 @@ namespace fileshare_utility
 
     partial class user
     {
+        /// <summary>
+        /// Single-Arg Constructor
+        /// </summary>
+        /// <param name="username">Username of the user</param>
         public user(string username)
             : this()
         {
@@ -108,6 +131,14 @@ namespace fileshare_utility
             this.date = DateTime.MinValue.ToString();
         }
 
+        /// <summary>
+        /// Full-Arg Constructor
+        /// </summary>
+        /// <param name="fileshare">Share that is mapped</param>
+        /// <param name="usr">User with the mapping</param>
+        /// <param name="comp">Computer with the mapping</param>
+        /// <param name="letter">Letter the mapping is assigned to</param>
+        /// <param name="username">Username used for mapping</param>
         public mapping(share fileshare, user usr, computer comp, string letter, string username)
         {
             this.shareID = fileshare.shareID;
