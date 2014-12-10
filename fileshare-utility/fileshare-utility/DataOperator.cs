@@ -24,15 +24,15 @@ namespace fileshare_utility
         public computer getComputer(string hostname)
         {
             return db.computers.FirstOrDefault<computer>(
-                    x => x.hostname.Equals(hostname, StringComparison.OrdinalIgnoreCase)
+                    x => x.hostname.ToUpper() == hostname.ToUpper()
                     );
         }
 
         public server getServer(string hostname, string domain)
         {
             return db.servers.FirstOrDefault<server>(
-                    x => x.hostname.Equals(hostname, StringComparison.OrdinalIgnoreCase) &&
-                         x.domain.Equals(domain, StringComparison.OrdinalIgnoreCase)
+                    x => x.hostname.ToUpper() == hostname.ToUpper() &&
+                         x.domain.ToUpper() == domain.ToUpper()
                     );
         }
 
@@ -40,14 +40,14 @@ namespace fileshare_utility
         {
             return db.shares.FirstOrDefault<share>(
                     x => x.serverID == serverID &&
-                         x.shareName.Equals(shareName, StringComparison.OrdinalIgnoreCase)
+                         x.shareName.ToUpper() == shareName.ToUpper()
                     );
         }
 
         public user getUser(string username)
         {
             return db.users.FirstOrDefault<user>(
-                    x => x.username.Equals(username, StringComparison.OrdinalIgnoreCase)
+                    x => x.username.ToUpper() == username.ToUpper()
                     );
         }
 

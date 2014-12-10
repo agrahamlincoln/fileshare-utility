@@ -14,7 +14,7 @@ namespace fileshare_utility
         public computer(string hostname)
             : this()
         {
-            this.hostname = hostname;
+            this.hostname = hostname.ToUpper();
         }
     }
 
@@ -27,7 +27,7 @@ namespace fileshare_utility
         public server(server srvr)
         {
             this.serverID = srvr.serverID;
-            this.hostname = srvr.hostname;
+            this.hostname = srvr.hostname.ToUpper();
             this.domain = srvr.domain;
             this.active = srvr.active;
             this.date = srvr.date;
@@ -37,7 +37,7 @@ namespace fileshare_utility
         public server(string hostname, string domain)
             : this()
         {
-            this.hostname = hostname;
+            this.hostname = hostname.ToUpper();
             this.domain = domain;
             this.active = true;
             this.date = DateTime.Now.ToString();
@@ -58,7 +58,7 @@ namespace fileshare_utility
             server resolved = null;
 
             IPHostEntry hostEntry;
-            hostEntry = Dns.GetHostEntry(address);
+            hostEntry = Dns.GetHostEntry(address.ToUpper());
 
             var host = hostEntry.HostName.Split('.').ToList<string>();
 

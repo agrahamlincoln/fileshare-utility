@@ -20,8 +20,8 @@ namespace fileshare_utility
             List<NetworkConnection> mappedDrives = new List<NetworkConnection>();   // List of Mapped Network Drives
 
             //Entity Framework Objects
-            DataContext db = new DataContext();
-            DataOperator dataOper = new DataOperator(db);
+            DataContext db = new DataContext();                                     // Entity Framework Context
+            DataOperator dataOper = new DataOperator(db);                           // For Mutators and Accessors
 
             //Database Entity Objects
             user CurrentUser;           //User of person executing app
@@ -30,6 +30,7 @@ namespace fileshare_utility
             //Initialize Program Variables
             runningPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
             globalLog.logPath = runningPath + "\\logs";
+            logger.header();
             logger.Write("logpath: " + globalLog.logPath);
             CurrentUser = dataOper.getUser(Environment.UserName);
             CurrentComputer = dataOper.getComputer(Environment.MachineName);
