@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data.SQLite;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace fileshare_utility
@@ -20,84 +21,28 @@ namespace fileshare_utility
             dbLogger.logPath = logPath;
         }
 
-        #region accessors
-        /// <summary>
-        /// Retrieves the first computer that matches the hostname
-        /// </summary>
-        /// <param name="hostname">Hostname of computer</param>
-        /// <returns>Null if none found</returns>
-        public computer getComputer(string hostname)
+        public T Get<T>(T Entity)
+            where T : class, Entity<T>, new()
         {
-            return computers.FirstOrDefault<computer>(
-                    x => x.hostname.ToUpper() == hostname.ToUpper()
-                    );
+            return Set<T>().FirstOrDefault<T>(Entity.BuildExpression());
         }
 
-        /// <summary>
-        /// Retrieves the first server that matches the hostname and domain
-        /// </summary>
-        /// <param name="hostname">Hostname of server</param>
-        /// <param name="domain">Domain of server</param>
-        /// <returns>Null if none found</returns>
-        public server getServer(string hostname, string domain)
+        public T InsertGet<T>(T Entity)
+            where T : class, Entity<T>, new()
         {
-            return servers.FirstOrDefault<server>(
-                    x => x.hostname.ToUpper() == hostname.ToUpper() &&
-                         x.domain.ToUpper() == domain.ToUpper()
-                    );
+            //Check if exists
+            T Returned = Get<T>(Entity);
+
+            if (Returned == null)
+            {
+                //Add and Get
+                Insert<T>(Entity);
+                Returned = Get<T>(Entity);
+            }
+
+            return Returned;
         }
 
-        /// <summary>
-        /// Retrieves the first share that matches the serverID and shareName
-        /// </summary>
-        /// <param name="serverID">Database ID of Server</param>
-        /// <param name="shareName">Shared name of fileshare</param>
-        /// <returns>Null if none found</returns>
-        public share getShare(long serverID, string shareName)
-        {
-            return shares.FirstOrDefault<share>(
-                    x => x.serverID == serverID &&
-                         x.shareName.ToUpper() == shareName.ToUpper()
-                    );
-        }
-
-        /// <summary>
-        /// Retrieves the first user that matches the username
-        /// </summary>
-        /// <param name="username">Username of user</param>
-        /// <returns>Null if none found</returns>
-        public user getUser(string username)
-        {
-            return users.FirstOrDefault<user>(
-                    x => x.username.ToUpper() == username.ToUpper()
-                    );
-        }
-
-        /// <summary>
-        /// Retrieves the first mapping that matches the share, user, and computer ID's
-        /// </summary>
-        /// <param name="shareID">Database ID of share</param>
-        /// <param name="userID">Database ID of user</param>
-        /// <param name="computerID">Database ID of computer</param>
-        /// <returns>Null if none found</returns>
-        public mapping getMapping(long shareID, long userID, long computerID)
-        {
-            return mappings.FirstOrDefault<mapping>(
-                    x => x.shareID == shareID &&
-                         x.userID == userID &&
-                         x.computerID == computerID
-                    );
-        }
-
-        public master getMaster(string setting)
-        {
-            return masters.FirstOrDefault<master>(
-                    x => x.setting.ToUpper() == setting.ToUpper()
-                    );
-        }
-        #endregion
-
-        #region add
         /// <summary>
         /// Generic method to add new entities to database
         ///// </summary>
@@ -107,10 +52,18 @@ namespace fileshare_utility
             where T : class
         {
             Set<T>().Add(Entity);
-            dbLogger.Write("Added " + typeof(T).ToString() + " to [" + Set<T>().ToString() + "] :" + Entity.ToString());
+            dbLogger.Write("Added " + typeof(T).ToString() + " to [" + GetTableName<T>(Entity) + "]:" + Entity.ToString());
             SaveChanges();
         }
-        #endregion
+
+        public string GetTableName<T>(T Entity)
+            where T : class
+        {
+            Regex regex = new Regex("(?<=FROM \\[)[A-z]*(?=\\] AS)");
+            string match = regex.Match(Set<T>().ToString()).ToString();
+
+            return match;
+        }
 
         /// <summary>
         /// Builds the database, Note: This is a static build and this will not work if you change the entity model.

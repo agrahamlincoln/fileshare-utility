@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -8,10 +9,12 @@ using System.Threading.Tasks;
 
 namespace fileshare_utility
 {
-    /// <summary>
-    /// Computer Entity - Built by Entity Framework
-    /// </summary>
-    partial class computer
+    public interface Entity<T>
+    {
+         Expression<Func<T, bool>> BuildExpression();
+    }
+
+    partial class computer : Entity<computer>
     {
         /// <summary>
         /// Single-Arg Constructor
@@ -21,6 +24,25 @@ namespace fileshare_utility
             : this()
         {
             this.hostname = hostname.ToUpper();
+        }
+
+        public Expression<Func<computer, bool>> BuildExpression()
+        {
+            var entityType = typeof(computer);
+            var propertyName = "hostname";
+            var thisValue = this.hostname;
+
+            ParameterExpression entity = Expression.Parameter(entityType, "x");
+            MemberExpression entityProperty = Expression.Property(entity, propertyName);
+            ConstantExpression thisProperty = Expression.Constant(thisValue, typeof(string));
+            Expression predicateBody = Expression.Equal(entityProperty, thisProperty);
+
+            var lambda = Expression.Lambda<Func<computer, bool>>(
+                predicateBody, 
+                new ParameterExpression[] { entity }
+                );
+
+            return lambda;                
         }
 
         public override bool Equals(object obj)
@@ -39,7 +61,7 @@ namespace fileshare_utility
         }
     }
 
-    partial class mapping
+    partial class mapping : Entity<mapping>
     {
         /// <summary>
         /// No-Arg constructor, initializes values to un-real
@@ -72,6 +94,41 @@ namespace fileshare_utility
             this.date = DateTime.Now.ToString();
         }
 
+        public Expression<Func<mapping, bool>> BuildExpression()
+        {
+            var entityType = typeof(mapping);
+            var property1Name = "shareID";
+            var property2Name = "userID";
+            var property3Name = "computerID";
+            var thisValue1 = this.shareID;
+            var thisValue2 = this.userID;
+            var thisValue3 = this.computerID;
+
+            ParameterExpression entity = Expression.Parameter(entityType, "x");
+
+            MemberExpression entityProperty1 = Expression.Property(entity, property1Name);
+            ConstantExpression thisProperty1 = Expression.Constant(thisValue1, typeof(long));
+
+            MemberExpression entityProperty2 = Expression.Property(entity, property2Name);
+            ConstantExpression thisProperty2 = Expression.Constant(thisValue2, typeof(long));
+
+            MemberExpression entityProperty3 = Expression.Property(entity, property3Name);
+            ConstantExpression thisProperty3 = Expression.Constant(thisValue3, typeof(long));
+
+            BinaryExpression expr1 = Expression.Equal(entityProperty1, thisProperty1);
+            BinaryExpression expr2 = Expression.Equal(entityProperty2, thisProperty2);
+            BinaryExpression expr3 = Expression.Equal(entityProperty3, thisProperty3);
+
+            Expression predicateBody = Expression.AndAlso(Expression.AndAlso(expr1, expr2), expr3);
+
+            var lambda = Expression.Lambda<Func<mapping, bool>>(
+                predicateBody,
+                new ParameterExpression[] { entity }
+                );
+
+            return lambda;
+        }
+
         public override bool Equals(object obj)
         {
             var item = obj as mapping;
@@ -91,7 +148,7 @@ namespace fileshare_utility
         }
     }
 
-    partial class master
+    partial class master : Entity<master>
     {
         public master() : this(null, null) { }
         public master(string setting) : this(setting, null) { }
@@ -122,6 +179,27 @@ namespace fileshare_utility
             }
         }
 
+        public Expression<Func<master, bool>> BuildExpression()
+        {
+            var entityType = typeof(master);
+            var propertyName = "setting";
+            var thisValue = this.setting;
+
+            ParameterExpression entity = Expression.Parameter(entityType, "x");
+
+            MemberExpression entityProperty = Expression.Property(entity, propertyName);
+            ConstantExpression thisProperty = Expression.Constant(thisValue, typeof(string));
+
+            BinaryExpression predicateBody = Expression.Equal(entityProperty, thisProperty);
+
+            var lambda = Expression.Lambda<Func<master, bool>>(
+                predicateBody,
+                new ParameterExpression[] { entity }
+                );
+
+            return lambda;
+        }
+
         public override bool Equals(object obj)
         {
             var item = obj as master;
@@ -150,10 +228,7 @@ namespace fileshare_utility
         }
     }
 
-    /// <summary>
-    /// Server Entity - Built by Entity Framework
-    /// </summary>
-    partial class server
+    partial class server : Entity<server>
     {
         /// <summary>
         /// Copy constructor
@@ -183,7 +258,6 @@ namespace fileshare_utility
             this.date = DateTime.Now.ToString();
         }
 
-
         /// <summary>
         /// Performs a DNS lookup on an address and returns a server object
         /// </summary>
@@ -211,6 +285,35 @@ namespace fileshare_utility
             return resolved;
         }
 
+        public Expression<Func<server, bool>> BuildExpression()
+        {
+            var entityType = typeof(server);
+            var property1Name = "hostname";
+            var property2Name = "domain";
+            var thisValue1 = this.hostname;
+            var thisValue2 = this.domain;
+
+            ParameterExpression entity = Expression.Parameter(entityType, "x");
+
+            MemberExpression entityProperty1 = Expression.Property(entity, property1Name);
+            ConstantExpression thisProperty1 = Expression.Constant(thisValue1, typeof(string));
+
+            MemberExpression entityProperty2 = Expression.Property(entity, property2Name);
+            ConstantExpression thisProperty2 = Expression.Constant(thisValue2, typeof(string));
+
+            BinaryExpression expr1 = Expression.Equal(entityProperty1, thisProperty1);
+            BinaryExpression expr2 = Expression.Equal(entityProperty2, thisProperty2);
+
+            Expression predicateBody = Expression.AndAlso(expr1, expr2);
+
+            var lambda = Expression.Lambda<Func<server, bool>>(
+                predicateBody,
+                new ParameterExpression[] { entity }
+                );
+
+            return lambda;
+        }
+
         public override bool Equals(object obj)
         {
             var item = obj as server;
@@ -229,7 +332,7 @@ namespace fileshare_utility
         }
     }
 
-    partial class share
+    partial class share : Entity<share>
     {
         /// <summary>
         /// Two-Arg constructor
@@ -243,6 +346,35 @@ namespace fileshare_utility
             this.shareName = shareName;
             this.server = currServer;
             this.active = true;
+        }
+
+        public Expression<Func<share, bool>> BuildExpression()
+        {
+            var entityType = typeof(share);
+            var property1Name = "serverID";
+            var property2Name = "shareName";
+            var thisValue1 = this.serverID;
+            var thisValue2 = this.shareName;
+
+            ParameterExpression entity = Expression.Parameter(entityType, "x");
+
+            MemberExpression entityProperty1 = Expression.Property(entity, property1Name);
+            ConstantExpression thisProperty1 = Expression.Constant(thisValue1, typeof(long));
+
+            MemberExpression entityProperty2 = Expression.Property(entity, property2Name);
+            ConstantExpression thisProperty2 = Expression.Constant(thisValue2, typeof(string));
+
+            BinaryExpression expr1 = Expression.Equal(entityProperty1, thisProperty1);
+            BinaryExpression expr2 = Expression.Equal(entityProperty2, thisProperty2);
+
+            Expression predicateBody = Expression.AndAlso(expr1, expr2);
+
+            var lambda = Expression.Lambda<Func<share, bool>>(
+                predicateBody,
+                new ParameterExpression[] { entity }
+                );
+
+            return lambda;
         }
 
         public override bool Equals(object obj)
@@ -263,7 +395,7 @@ namespace fileshare_utility
         }
     }
 
-    partial class user
+    partial class user : Entity<user>
     {
         /// <summary>
         /// Single-Arg Constructor
@@ -273,6 +405,25 @@ namespace fileshare_utility
             : this()
         {
             this.username = username;
+        }
+
+        public Expression<Func<user, bool>> BuildExpression()
+        {
+            var entityType = typeof(user);
+            var propertyName = "username";
+            var thisValue = this.username;
+
+            ParameterExpression entity = Expression.Parameter(entityType, "x");
+            MemberExpression entityProperty = Expression.Property(entity, propertyName);
+            ConstantExpression thisProperty = Expression.Constant(thisValue, typeof(string));
+            Expression predicateBody = Expression.Equal(entityProperty, thisProperty);
+
+            var lambda = Expression.Lambda<Func<user, bool>>(
+                predicateBody,
+                new ParameterExpression[] { entity }
+                );
+
+            return lambda;
         }
 
         public override bool Equals(object obj)

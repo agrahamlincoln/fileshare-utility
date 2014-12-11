@@ -65,30 +65,10 @@ namespace fileshare_utility
                 db.BuildDB();
 
             //Initialize Program Variables
-            CurrentUser = db.getUser(Environment.UserName);
-            CurrentComputer = db.getComputer(Environment.MachineName);
-            UnmappedCount = db.getMaster("UnmappedCount");
+            CurrentUser = db.InsertGet<user>(new user(Environment.UserName));
+            CurrentComputer = db.InsertGet<computer>(new computer(Environment.MachineName));
+            UnmappedCount = db.InsertGet<master>(new master("UnmappedCount"));
             #endregion
-
-            //Add new user if not found
-            if (CurrentUser == null)
-            {
-                db.Insert<user>(new user(Environment.UserName));
-                CurrentUser = db.getUser(Environment.UserName);
-            }
-
-            //Add new computer if not found
-            if (CurrentComputer == null)
-            {
-                db.Insert<computer>(new computer(Environment.MachineName));
-                CurrentComputer = db.getComputer(Environment.MachineName);
-            }
-
-            if (UnmappedCount == null)
-            {
-                db.Insert<master>(new master("UnmappedCount"));
-                UnmappedCount = db.getMaster("UnmappedCount");
-            }
 
             // Make sure all shares are added to the DB
             logger.Write("=== List of Currently Mapped Drives ===");
@@ -105,17 +85,7 @@ namespace fileshare_utility
                     //server is not in current list.
                     try
                     {
-                        server DNSserver = server.dnslookup(NetCon.ServerName);
-
-                        //query database and add if necessary.
-                        server DBserver = db.getServer(DNSserver.hostname, DNSserver.domain);
-
-                        if (DBserver == null)
-                        {
-                            //server was not found; add to Database.
-                            db.Insert<server>(DNSserver);
-                            DBserver = db.getServer(DNSserver.hostname, DNSserver.domain);
-                        }
+                        server DBserver = db.InsertGet<server>(server.dnslookup(NetCon.ServerName));
                         servers.Add(DBserver);
 
                         DBserver.date = DateTime.Now.ToString();
@@ -129,6 +99,7 @@ namespace fileshare_utility
                     catch (Exception crap)
                     {
                         logger.Write("An unexpected error occurred: " + crap.ToString());
+                        //Skip to next network connection
                         continue;
                     }
                 }
@@ -145,15 +116,13 @@ namespace fileshare_utility
                     continue;
                 }
 
-                share fileshare = db.getShare(currentServer.serverID, NetCon.ShareName);
+                share currentShare = new share(currentServer, NetCon.ShareName);
 
-                if (fileshare == null)
+                if (db.Get<share>(currentShare) == null)
                 {
-                    fileshare = new share(currentServer, NetCon.ShareName);
-                    db.Insert<share>(fileshare);
-                    fileshare = db.getShare(fileshare.serverID, fileshare.shareName);
+                    currentShare = db.InsertGet<share>(currentShare);
                 }
-                else if (!fileshare.active)
+                else if (!currentShare.active)
                 {
                     NetCon.unmap();
                     UnmappedCount.increment();
@@ -161,38 +130,26 @@ namespace fileshare_utility
                     continue;
                 }
 
-                shares.Add(fileshare);
+                shares.Add(currentShare);
             }
-
-            List<mapping> mappedList = new List<mapping>();
-            //Query the DB and get all mappings
-            //all mappings of the current user and computer
-            IQueryable<mapping> dbMappings = db.mappings.Where<mapping>(
-            x => x.computerID == CurrentComputer.computerID &&
-                 x.userID == CurrentUser.userID
-            );
 
             foreach (share fileshare in shares)
             {
-                mapping map = dbMappings.FirstOrDefault<mapping>(x => x.shareID == fileshare.shareID);
+                //Locate associated share in MappedList
+                NetworkConnection NetCon = mappedDrives.Find(
+                    x => x.ServerName.ToUpper() == fileshare.server.hostname.ToUpper() &&
+                         x.ShareName.ToUpper() == fileshare.shareName.ToUpper()
+                    );
 
-                if (map == null)
-                {
-                    NetworkConnection NetCon = mappedDrives.Find(
-                        x => x.ServerName.ToUpper() == fileshare.server.hostname.ToUpper() &&
-                             x.ShareName.ToUpper() == fileshare.shareName.ToUpper()
-                        );
-                    map = new mapping(fileshare, CurrentUser, CurrentComputer, NetCon.LocalName, NetCon.UserName);
+                //create Object to reference this mapping
+                mapping map = new mapping(fileshare, CurrentUser, CurrentComputer, NetCon.LocalName, NetCon.UserName);
 
-                    db.Insert<mapping>(map);
-                    map = db.getMapping(map.shareID, map.userID, map.computerID);
-                    logger.Write("Added new Mapping to [mappings]: " + map.ToString());
-                }
+                map = db.InsertGet<mapping>(map);
 
                 map.date = DateTime.Now.ToString();
-                mappedList.Add(map);
             }
 
+            //Save final changes
             db.SaveChanges();
         }
 
