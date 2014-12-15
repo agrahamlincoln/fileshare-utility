@@ -13,31 +13,30 @@ namespace fileshare_utility
         private const string LOG_SUBDIRECTORY = "data";            // Stores Logs
         private const string DB_FILENAME = "fileshares.s3db";       // Database Filename
 
+        private string _RunningPath;
         public string runningPath 
-        { 
-            get; 
-            private set; 
+        {
+            get { return _RunningPath; }
+            private set { _RunningPath = value; }
         }             // Path of the Executed Application
+
+        private string _LogDir;
         public string logDir
         {
-            get 
-            { 
-                return logDir; 
-            }
-            private set
-            {
-                CreateSubdirectoryIfNoExists(LOG_SUBDIRECTORY);
+            get { return _LogDir; }
+            private set {
+                _LogDir = value;
+                CreateSubdirectoryIfNoExists(LOG_SUBDIRECTORY); 
             }
         }                          // Directory that stores the log
+
+        private string _DBDir;
         public string dbDir
         {
-            get 
-            {
-                return dbDir;
-            }
-            private set
-            {
-                CreateSubdirectoryIfNoExists(DATA_SUBDIRECTORY);
+            get { return _DBDir; }
+            private set {
+                _DBDir = value;
+                CreateSubdirectoryIfNoExists(DATA_SUBDIRECTORY); 
             }
         }                           // Directory that stores the database
         public string dbPath 

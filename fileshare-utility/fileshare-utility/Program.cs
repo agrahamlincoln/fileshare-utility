@@ -24,9 +24,9 @@ namespace fileshare_utility
             DataContext db;                         // Entity Framework Context
 
             // Database Entity Objects
-            user CurrentUser;                       //User of person executing app
-            computer CurrentComputer;               //Computer executing app
-            master UnmappedCount;                   //Number of fileshares unmapped
+            user CurrentUser;                       // User of person executing app
+            computer CurrentComputer;               // Computer executing app
+            master UnmappedCount;                   // Number of fileshares unmapped
             #endregion
 
             #region Initialization
