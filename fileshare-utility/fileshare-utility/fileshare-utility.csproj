@@ -103,6 +103,7 @@
     </Compile>
     <Compile Include="DataContext.cs" />
     <Compile Include="DBObjects.cs" />
+    <Compile Include="FileLocations.cs" />
     <Compile Include="LogWriter.cs" />
     <Compile Include="mapping.cs">
       <DependentUpon>DataModel.tt</DependentUpon>

@@ -11,17 +11,14 @@ namespace fileshare_utility
 {
     class Program
     {
-        private const string LOG_SUBDIRECTORY = "\\logs";
-        private const string DATA_SUBDIRECTORY = "\\data";
-
         static void Main(string[] args)
         {
             #region Instantiation
             // Program Variables
             LogWriter logger;                       // Run-Time log
             LogWriter globalLog;                    // Unmapped/Discovered Drive log
-            string runningPath;                     // Path of executed application
             List<NetworkConnection> mappedDrives;   // List of Mapped Network Drives
+            FileLocations locations;                // Stores all FilePath and Directory locations
 
             // Entity Framework Objects
             DataContext db;                         // Entity Framework Context
@@ -33,19 +30,15 @@ namespace fileshare_utility
             #endregion
 
             #region Initialization
-            // Directory Initialization
-            runningPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-            CreateSubdirectoryIfNoExists("logs");
-            CreateSubdirectoryIfNoExists("data");
-            AppDomain.CurrentDomain.SetData("DataDirectory", runningPath);
+            locations = new FileLocations();
 
             // Logger Initialization
             logger = new LogWriter();
             globalLog = new LogWriter("Log.txt");
 
-            globalLog.logPath = runningPath + LOG_SUBDIRECTORY;
+            globalLog.logPath = locations.logDir;
             logger.header();
-            logger.Write("Global Log Path: " + globalLog.logPath);
+            logger.Write("Global Log Path: " + locations.logDir);
 
             // Get Mapped Drives
             mappedDrives = new List<NetworkConnection>();
@@ -60,8 +53,8 @@ namespace fileshare_utility
             }
 
             // Database Initialization
-            db = new DataContext(runningPath + LOG_SUBDIRECTORY);
-            if (!File.Exists(AppDomain.CurrentDomain.GetData("DataDirectory") + DATA_SUBDIRECTORY + "\\fileshare-utility.s3db"))
+            db = new DataContext(locations.dbDir);
+            if (!File.Exists(locations.dbPath))
                 db.BuildDB();
 
             //Initialize Program Variables
@@ -70,43 +63,45 @@ namespace fileshare_utility
             UnmappedCount = db.InsertGet<master>(new master("UnmappedCount"));
             #endregion
 
-            // Make sure all shares are added to the DB
             logger.Write("=== List of Currently Mapped Drives ===");
             List<server> servers = new List<server>();
-            List<share> shares = new List<share>();
+            List<share> ActiveShares = new List<share>();
             foreach (NetworkConnection NetCon in mappedDrives)
             {
                 logger.Write("Now Processing: " + NetCon.ToString());
 
-                if (!servers.Exists(
-                    x => x.hostname.ToUpper() == NetCon.ServerName.ToUpper()
-                    ))
+                server currentServer = servers.FirstOrDefault(
+                    x => x.hostname.ToUpper() == NetCon.GetServer().ToUpper()
+                    );
+
+                if (currentServer == null)
                 {
                     //server is not in current list.
                     try
                     {
-                        server DBserver = db.InsertGet<server>(server.dnslookup(NetCon.ServerName));
+                        //Create temp object and verify hostname/domain through DNS
+                        var dnsServer = server.dnslookup(NetCon.GetServer());
+
+                        //Add the temp object to the DB
+                        server DBserver = db.InsertGet<server>(dnsServer);
+
+                        //Add the DB Object to the list
                         servers.Add(DBserver);
 
+                        //Set the date on the DB object to NOW
                         DBserver.date = DateTime.Now.ToString();
                     }
                     catch (SocketException)
                     {
-                        logger.Write("Could not resolve hostname: " + NetCon.ServerName);
-                        //Skip to next network connection
-                        continue;
-                    }
-                    catch (Exception crap)
-                    {
-                        logger.Write("An unexpected error occurred: " + crap.ToString());
+                        logger.Write("Could not resolve hostname: " + NetCon.GetServer());
                         //Skip to next network connection
                         continue;
                     }
                 }
-                
-                server currentServer = servers.FirstOrDefault(
-                    x => x.hostname.Equals(NetCon.ServerName, StringComparison.OrdinalIgnoreCase)
-                );
+
+                currentServer = servers.FirstOrDefault(
+                    x => x.hostname.ToUpper() == NetCon.GetServer().ToUpper()
+                    );
 
                 if (!currentServer.active)
                 {
@@ -116,7 +111,7 @@ namespace fileshare_utility
                     continue;
                 }
 
-                share currentShare = new share(currentServer, NetCon.ShareName);
+                share currentShare = new share(currentServer, NetCon.GetShareName());
 
                 if (db.Get<share>(currentShare) == null)
                 {
@@ -130,15 +125,15 @@ namespace fileshare_utility
                     continue;
                 }
 
-                shares.Add(currentShare);
+                ActiveShares.Add(currentShare);
             }
 
-            foreach (share fileshare in shares)
+            foreach (share fileshare in ActiveShares)
             {
                 //Locate associated share in MappedList
                 NetworkConnection NetCon = mappedDrives.Find(
-                    x => x.ServerName.ToUpper() == fileshare.server.hostname.ToUpper() &&
-                         x.ShareName.ToUpper() == fileshare.shareName.ToUpper()
+                    x => x.GetServer().ToUpper() == fileshare.server.hostname.ToUpper() &&
+                         x.GetShareName().ToUpper() == fileshare.shareName.ToUpper()
                     );
 
                 //create Object to reference this mapping
@@ -151,17 +146,6 @@ namespace fileshare_utility
 
             //Save final changes
             db.SaveChanges();
-        }
-
-        /// <summary>
-        /// Creates a Subdirectory under the running program if none exists
-        /// </summary>
-        /// <param name="name">name of the subdirectory to create</param>
-        public static void CreateSubdirectoryIfNoExists(string name)
-        {
-            string runningPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-            if (!Directory.Exists(runningPath + "\\" + name))
-                Directory.CreateDirectory(runningPath + "\\" + name);
         }
     }
 }
