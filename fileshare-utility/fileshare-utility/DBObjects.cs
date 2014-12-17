@@ -16,6 +16,23 @@ namespace fileshare_utility
 
     partial class computer : Entity<computer>
     {
+        public const int MAX_CHARACTERS_HOSTNAME = 15;
+
+        public string name
+        {
+            get
+            {
+                return hostname;
+            }
+            set
+            {
+                var newHostname = value;
+                if (newHostname.Length > MAX_CHARACTERS_HOSTNAME)
+                    newHostname = newHostname.Substring(0, MAX_CHARACTERS_HOSTNAME);
+                this.hostname = newHostname;
+            }
+        }
+
         /// <summary>
         /// Single-Arg Constructor
         /// </summary>
@@ -23,7 +40,7 @@ namespace fileshare_utility
         public computer(string hostname)
             : this()
         {
-            this.hostname = hostname.ToUpper();
+            this.name = hostname.ToUpper();
         }
 
         public Expression<Func<computer, bool>> BuildExpression()
@@ -49,15 +66,20 @@ namespace fileshare_utility
         {
             var item = obj as computer;
 
-            if (obj == null)
+            if (item == null)
                 return false;
 
-            return this.hostname.Equals(item.hostname, StringComparison.OrdinalIgnoreCase);
+            var hostname1 = this.hostname ?? String.Empty;
+            var hostname2 = item.hostname ?? String.Empty;
+
+            return hostname1.Equals(hostname2, StringComparison.OrdinalIgnoreCase);
         }
 
         public override string ToString()
         {
-            return this.hostname + " (" + computerID + ")";
+            if (this.hostname == null)
+                return "";
+            return this.hostname;
         }
     }
 
@@ -67,14 +89,11 @@ namespace fileshare_utility
         /// No-Arg constructor, initializes values to un-real
         /// </summary>
         public mapping()
-        {
-            this.shareID = -1;
-            this.computerID = -1;
-            this.userID = -1;
-            this.letter = "C";
-            this.username = "";
-            this.date = DateTime.MinValue.ToString();
-        }
+            : this("", "") { }
+
+        public mapping(string letter, string username)
+            : this(new share(new server(), ""), new user(), new computer(), letter, username)
+        { }
 
         /// <summary>
         /// Full-Arg Constructor
@@ -230,6 +249,22 @@ namespace fileshare_utility
 
     partial class server : Entity<server>
     {
+        public const int MAX_CHARACTERS_HOSTNAME = 15;
+
+        public string name
+        {
+            get
+            {
+                return hostname;
+            }
+            set
+            {
+                var newHostName = value;
+                if (newHostName.Length > MAX_CHARACTERS_HOSTNAME)
+                    newHostName = newHostName.Substring(0, MAX_CHARACTERS_HOSTNAME);
+                hostname = newHostName;
+            }
+        }
         /// <summary>
         /// Copy constructor
         /// </summary>
@@ -237,7 +272,7 @@ namespace fileshare_utility
         public server(server srvr)
         {
             this.serverID = srvr.serverID;
-            this.hostname = srvr.hostname.ToUpper();
+            this.name = srvr.hostname.ToUpper();
             this.domain = srvr.domain;
             this.active = srvr.active;
             this.date = srvr.date;
@@ -252,7 +287,7 @@ namespace fileshare_utility
         public server(string hostname, string domain)
             : this()
         {
-            this.hostname = hostname.ToUpper();
+            this.name = hostname.ToUpper();
             this.domain = domain;
             this.active = true;
             this.date = DateTime.Now.ToString();
@@ -391,7 +426,7 @@ namespace fileshare_utility
 
         public override string ToString()
         {
-            return this.server.hostname + "\\" + this.shareName + " (" + this.shareID + ")";
+            return this.server.name + "\\" + this.shareName + " (" + this.shareID + ")";
         }
     }
 

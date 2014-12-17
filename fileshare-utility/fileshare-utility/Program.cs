@@ -6,6 +6,7 @@ using System.Management;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using ExtensionMethods;
 
 namespace fileshare_utility
 {
@@ -44,7 +45,7 @@ namespace fileshare_utility
             mappedDrives = new List<NetworkConnection>();
             try
             {
-                mappedDrives = NetworkConnection.ListCurrentlyMappedDrives();
+                mappedDrives = NetworkConnection.ListCurrentlyMappedDrives().DNSable();
             }
             catch (ManagementException crap)
             {
@@ -57,51 +58,24 @@ namespace fileshare_utility
             if (!File.Exists(locations.dbPath))
                 db.BuildDB();
 
-            //Initialize Program Variables
-            CurrentUser = db.InsertGet<user>(new user(Environment.UserName));
-            CurrentComputer = db.InsertGet<computer>(new computer(Environment.MachineName));
-            UnmappedCount = db.InsertGet<master>(new master("UnmappedCount"));
+            // Initialize Program Variables
+            CurrentUser = db.FindOrInsert<user>(new user(Environment.UserName));
+            CurrentComputer = db.FindOrInsert<computer>(new computer(Environment.MachineName));
+            UnmappedCount = db.FindOrInsert<master>(new master("UnmappedCount"));
             #endregion
 
             logger.Write("=== List of Currently Mapped Drives ===");
-            List<server> servers = new List<server>();
-            List<share> ActiveShares = new List<share>();
+
             foreach (NetworkConnection NetCon in mappedDrives)
             {
                 logger.Write("Now Processing: " + NetCon.ToString());
 
-                server currentServer = servers.FirstOrDefault(
-                    x => x.hostname.ToUpper() == NetCon.GetServer().ToUpper()
-                    );
+                MappedShare MapShare = new MappedShare(NetCon);
 
-                if (currentServer == null)
-                {
-                    //server is not in current list.
-                    try
-                    {
-                        //Create temp object and verify hostname/domain through DNS
-                        var dnsServer = server.dnslookup(NetCon.GetServer());
-
-                        //Add the temp object to the DB
-                        server DBserver = db.InsertGet<server>(dnsServer);
-
-                        //Add the DB Object to the list
-                        servers.Add(DBserver);
-
-                        //Set the date on the DB object to NOW
-                        DBserver.date = DateTime.Now.ToString();
-                    }
-                    catch (SocketException)
-                    {
-                        logger.Write("Could not resolve hostname: " + NetCon.GetServer());
-                        //Skip to next network connection
-                        continue;
-                    }
-                }
-
-                currentServer = servers.FirstOrDefault(
-                    x => x.hostname.ToUpper() == NetCon.GetServer().ToUpper()
-                    );
+                //Add the server
+                server currentServer = db.FindOrInsert<server>(server.dnslookup(NetCon.GetServer()));
+                //Update the date of the server
+                currentServer.date = DateTime.Now.ToString();
 
                 if (!currentServer.active)
                 {
@@ -111,13 +85,13 @@ namespace fileshare_utility
                     continue;
                 }
 
-                share currentShare = new share(currentServer, NetCon.GetShareName());
+                MapShare.mapping.share = new share(currentServer, NetCon.GetShareName());
 
-                if (db.Get<share>(currentShare) == null)
+                if (db.Get<share>(MapShare.mapping.share) == null)
                 {
-                    currentShare = db.InsertGet<share>(currentShare);
+                    MapShare.mapping.share = db.FindOrInsert<share>(MapShare.mapping.share);
                 }
-                else if (!currentShare.active)
+                else if (!MapShare.mapping.share.server.active)
                 {
                     NetCon.unmap();
                     UnmappedCount.increment();
@@ -125,23 +99,8 @@ namespace fileshare_utility
                     continue;
                 }
 
-                ActiveShares.Add(currentShare);
-            }
-
-            foreach (share fileshare in ActiveShares)
-            {
-                //Locate associated share in MappedList
-                NetworkConnection NetCon = mappedDrives.Find(
-                    x => x.GetServer().ToUpper() == fileshare.server.hostname.ToUpper() &&
-                         x.GetShareName().ToUpper() == fileshare.shareName.ToUpper()
-                    );
-
-                //create Object to reference this mapping
-                mapping map = new mapping(fileshare, CurrentUser, CurrentComputer, NetCon.LocalName, NetCon.UserName);
-
-                map = db.InsertGet<mapping>(map);
-
-                map.date = DateTime.Now.ToString();
+                MapShare.mapping = db.FindOrInsert<mapping>(MapShare.mapping);
+                MapShare.mapping.date = DateTime.Now.ToString();
             }
 
             //Save final changes

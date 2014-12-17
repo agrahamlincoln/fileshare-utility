@@ -20,7 +20,7 @@ namespace fileshare_utility
         }
     
         public long serverID { get; set; }
-        public string hostname { get; set; }
+        private string hostname { get; set; }
         public bool active { get; set; }
         public string domain { get; set; }
         public string date { get; set; }

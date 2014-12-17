@@ -12,7 +12,7 @@ namespace fileshare_utility
     /// <summary>
     /// Stores information about a Network Connection, Mimics the structure of Windows WMI queries from root\CIMV2\Win32_NetworkConnection
     /// </summary>
-    sealed public class NetworkConnection
+    public class NetworkConnection
     {
         /// <summary>The following block are all used to unmap the drives.
         /// </summary>
@@ -58,6 +58,26 @@ namespace fileshare_utility
             : this (0, "", "", "", "",
                     "", "", DateTime.Now, LocalName, LocalName + "(" + RemotePath + ")", 
                     false, "", RemotePath, RemotePath, "", "OK", UserName) { }
+
+        public NetworkConnection(NetworkConnection NetCon)
+        {
+            this.AccessMask =       NetCon.AccessMask;
+            this.Caption =          NetCon.Caption;
+            this.Comment =          NetCon.Comment;
+            this.ConnectionState =  NetCon.ConnectionState;
+            this.ConnectionType =   NetCon.ConnectionType;
+            this.Description = NetCon.Description;
+            this.DisplayType = NetCon.DisplayType;
+            this.InstallDate = NetCon.InstallDate;
+            this.LocalName = NetCon.LocalName;
+            this.Name = NetCon.Name;
+            this.Persistent = NetCon.Persistent;
+            this.ProviderName = NetCon.ProviderName;
+            this.RemoteName = NetCon.RemoteName;
+            this.ResourceType = NetCon.ResourceType;
+            this.Status = NetCon.Status;
+            this.UserName = NetCon.UserName;
+        }
 
         /// <summary>
         /// Constructor with all Arguments

@@ -27,7 +27,7 @@ namespace fileshare_utility
             return Set<T>().FirstOrDefault<T>(Entity.BuildExpression());
         }
 
-        public T InsertGet<T>(T Entity)
+        public T FindOrInsert<T>(T Entity)
             where T : class, Entity<T>, new()
         {
             //Check if exists

@@ -12,7 +12,7 @@ namespace fileshare_utility
     using System;
     using System.Collections.Generic;
     
-    public partial class master 
+    public partial class master
     {
         public long ID { get; set; }
         public string setting { get; set; }
