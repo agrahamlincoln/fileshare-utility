@@ -13,12 +13,12 @@ namespace fileshare_utility
     /// </summary>
     partial class DataContext
     {
-        private LogWriter dbLogger = new LogWriter("DBLog");
+        private FileWriter dbLogger = new FileWriter("DBLog");
 
         public DataContext(string logPath)
             : this()
         {
-            dbLogger.logPath = logPath;
+            dbLogger.filePath = logPath;
         }
 
         public T Get<T>(T Entity)
@@ -52,7 +52,7 @@ namespace fileshare_utility
             where T : class
         {
             Set<T>().Add(Entity);
-            dbLogger.Write("Added " + typeof(T).ToString() + " to [" + GetTableName<T>(Entity) + "]:" + Entity.ToString());
+            dbLogger.Output("Added " + typeof(T).ToString() + " to [" + GetTableName<T>(Entity) + "]:" + Entity.ToString());
             SaveChanges();
         }
 

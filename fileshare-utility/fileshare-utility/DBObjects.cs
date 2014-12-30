@@ -75,6 +75,11 @@ namespace fileshare_utility
             return hostname1.Equals(hostname2, StringComparison.OrdinalIgnoreCase);
         }
 
+        public override int GetHashCode()
+        {
+            return this.hostname.GetHashCode();
+        }
+
         public override string ToString()
         {
             if (this.hostname == null)

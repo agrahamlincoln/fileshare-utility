@@ -7,38 +7,37 @@ using System.Threading.Tasks;
 
 namespace fileshare_utility
 {
+
     /// <summary>
     /// The LogWriter class will write log entries to a text file. This log file is by default located in the user's AppData/Roaming Folder.
     /// </summary>
-    public class LogWriter
+    public class FileWriter : Writer
     {
-        const string TIMESTAMP_FORMAT = "MM/dd HH:mm:ss";   // Format of Timestamp
 
         // Class Variables
-        public string logPath { get; set; }                 // Path of the log file
+        public string filePath { get; set; }                 // Path of the log file
         public string fileName { get; set; }                // Filename of the log file
-        private string assemblyVersion { get; set; }         // Assembly Version of the current running executable
 
         #region Constructors
         /// <summary>No-Arg Constructor
         /// </summary>
         /// <remarks>Will default file path to user's AppData/Roaming folder</remarks>
-        public LogWriter() : this(getAppDataPath()) { }
+        public FileWriter() : this(getAppDataPath()) { }
 
         /// <summary>Single Argument Constructor
         /// </summary>
         /// <param name="filepath">Path of the log file</param>
-        public LogWriter(string filepath) : this(getAppDataPath(), getProcessName() + "_log.txt") { }
+        public FileWriter(string filepath) : this(getAppDataPath(), getProcessName() + "_log.txt") { }
 
         /// <summary>Two-Argument Constructor
         /// </summary>
         /// <param name="filepath">Path of the log file</param>
         /// <param name="fileName">Name of the log file</param>
-        public LogWriter(string filepath, string fileName)
+        public FileWriter(string filepath, string fileName)
         {
-            this.logPath = filepath;
+            this.filePath = filepath;
             this.fileName = fileName;
-            this.assemblyVersion = getVersion();
+            this.assemblyVersion = GetAssemblyVersion();
         }
         #endregion
 
@@ -59,80 +58,41 @@ namespace fileshare_utility
             return System.Diagnostics.Process.GetCurrentProcess().ProcessName;
         }
 
-        /// <summary>Returns the current assembly version
-        /// </summary>
-        /// <returns>String version number of the current assembly</returns>
-        private string getVersion()
-        {
-            return typeof(LogWriter).Assembly.GetName().Version.ToString();
-        }
-
         #endregion
 
         #region Log writing
 
-
-        /// <summary>Returns a timestamp in string format.
-        /// </summary>
-        /// <remarks>Uses the Timestamp Format defined in the Constants of this class.</remarks>
-        /// <param name="value">DateTime to change into string</param>
-        /// <returns>Timestamp in string format.</returns>
-        private static string getTimestamp(DateTime value)
-        {
-            return value.ToString(TIMESTAMP_FORMAT);
-        }
-
         /// <summary>Public method to access the writelog method
         /// </summary>
         /// <param name="message">Message to write to log</param>
         /// <param name="print">Whether to write or not</param>
-        public void Write(string message, bool print)
+        public override void Output(string message)
         {
-            if (print)
-            {
-                oWrite(message);
-            }
-        }
-
-        /// <summary>Public method to access the writelog method
-        /// </summary>
-        /// <param name="message">Message to write to log</param>
-        /// <param name="print">Whether to write or not</param>
-        public void Write(string message)
-        {
-            oWrite(message);
+            _Output(message);
         }
 
         /// <summary>Appends a new message to the end of the log file.
         /// </summary>
         /// <remarks>If there is no log file available, this will create one. The log files are stored in the current user's Appdata/Roaming folder.</remarks>
         /// <param name="message"></param>
-        private void oWrite(string message)
+        private void _Output(string message)
         {
-            string logLocation = logPath + "\\" + fileName;
+            string logLocation = filePath + "\\" + fileName;
 
             if (!System.IO.File.Exists(logLocation))
             {
                 using (StreamWriter sw = System.IO.File.CreateText(logLocation))
                 {
-                    sw.WriteLine(getTimestamp(DateTime.Now) + message);
+                    sw.WriteLine(GetTimestamp(DateTime.Now) + message);
                 }
             }
             else
             {
                 StreamWriter sWriter = new StreamWriter(logLocation, true);
-                sWriter.WriteLine(getTimestamp(DateTime.Now) + "\t" + message);
+                sWriter.WriteLine(GetTimestamp(DateTime.Now) + "\t" + message);
 
                 sWriter.Close();
             }
-        }
-
-        /// <summary> Creates a string header with program name and version. Typically used at the beginning of the program.
-        /// </summary>
-        /// <returns>string program header for log file.</returns>
-        public string header()
-        {
-            return "Logger Version: v" + assemblyVersion;
         }
         #endregion
     }

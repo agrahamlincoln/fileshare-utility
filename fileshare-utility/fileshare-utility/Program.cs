@@ -16,8 +16,8 @@ namespace fileshare_utility
         {
             #region Instantiation
             // Program Variables
-            LogWriter logger;                       // Run-Time log
-            LogWriter globalLog;                    // Unmapped/Discovered Drive log
+            FileWriter FileLogger;                       // Run-Time log
+            FileWriter FileGlobalLog;                    // Unmapped/Discovered Drive log
             List<NetworkConnection> mappedDrives;   // List of Mapped Network Drives
             FileLocations locations;                // Stores all FilePath and Directory locations
 
@@ -34,12 +34,12 @@ namespace fileshare_utility
             locations = new FileLocations();
 
             // Logger Initialization
-            logger = new LogWriter();
-            globalLog = new LogWriter("Log.txt");
+            FileLogger = new FileWriter();
+            FileGlobalLog = new FileWriter("Log.txt");
 
-            globalLog.logPath = locations.logDir;
-            logger.header();
-            logger.Write("Global Log Path: " + locations.logDir);
+            FileGlobalLog.filePath = locations.logDir;
+            FileLogger.Header();
+            FileLogger.Output("Global Log Path: " + locations.logDir);
 
             // Get Mapped Drives
             mappedDrives = new List<NetworkConnection>();
@@ -49,7 +49,7 @@ namespace fileshare_utility
             }
             catch (ManagementException crap)
             {
-                logger.Write(crap.ToString());
+                FileLogger.Output(crap.ToString());
                 Environment.Exit(0);
             }
 
@@ -64,11 +64,11 @@ namespace fileshare_utility
             UnmappedCount = db.FindOrInsert<master>(new master("UnmappedCount"));
             #endregion
 
-            logger.Write("=== List of Currently Mapped Drives ===");
+            FileLogger.Output("=== List of Currently Mapped Drives ===");
 
             foreach (NetworkConnection NetCon in mappedDrives)
             {
-                logger.Write("Now Processing: " + NetCon.ToString());
+                FileLogger.Output("Now Processing: " + NetCon.ToString());
 
                 MappedShare MapShare = new MappedShare(NetCon);
 
@@ -81,7 +81,7 @@ namespace fileshare_utility
                 {
                     NetCon.unmap();
                     UnmappedCount.increment();
-                    logger.Write("Unmapping Fileshare: " + NetCon.ToString());
+                    FileLogger.Output("Unmapping Fileshare: " + NetCon.ToString());
                     continue;
                 }
 
@@ -95,7 +95,7 @@ namespace fileshare_utility
                 {
                     NetCon.unmap();
                     UnmappedCount.increment();
-                    logger.Write("Unmapping Fileshare: " + NetCon.ToString());
+                    FileLogger.Output("Unmapping Fileshare: " + NetCon.ToString());
                     continue;
                 }
 

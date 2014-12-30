@@ -105,7 +105,8 @@
     <Compile Include="DBObjects.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="FileLocations.cs" />
-    <Compile Include="LogWriter.cs" />
+    <Compile Include="IWriter.cs" />
+    <Compile Include="FileWriter.cs" />
     <Compile Include="MappedShare.cs" />
     <Compile Include="mapping.cs">
       <DependentUpon>DataModel.tt</DependentUpon>
@@ -125,6 +126,7 @@
     <Compile Include="user.cs">
       <DependentUpon>DataModel.tt</DependentUpon>
     </Compile>
+    <Compile Include="Writer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">
