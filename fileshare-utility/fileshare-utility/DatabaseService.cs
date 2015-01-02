@@ -11,20 +11,25 @@ namespace fileshare_utility
     /// <summary>
     /// Used to perform Entity Framework Queries
     /// </summary>
-    partial class DataContext
+    public class DatabaseService : IRepository, IDisposable
     {
-        private FileWriter dbLogger = new FileWriter("DBLog");
+        bool disposed = false;
+        private DataContext db;
+        private IWriter Logger;
 
-        public DataContext(string logPath)
-            : this()
+        public DatabaseService() : this(new DataContext(), new FileWriter()) { }
+        public DatabaseService(string filePath) : this(new DataContext(), new FileWriter(filePath)) { }
+        public DatabaseService(DataContext db, IWriter logger)
+            : base()
         {
-            dbLogger.filePath = logPath;
+            this.db = db;
+            this.Logger = logger;
         }
 
         public T Get<T>(T Entity)
             where T : class, Entity<T>, new()
         {
-            return Set<T>().FirstOrDefault<T>(Entity.BuildExpression());
+            return db.Set<T>().FirstOrDefault<T>(Entity.BuildExpression());
         }
 
         public T FindOrInsert<T>(T Entity)
@@ -43,33 +48,53 @@ namespace fileshare_utility
             return Returned;
         }
 
-        /// <summary>
-        /// Generic method to add new entities to database
-        ///// </summary>
-        /// <typeparam name="T">Entity Class (computer; mapping; master; server; share; user)</typeparam>
-        /// <param name="Entity">Entity Object</param>
         public void Insert<T>(T Entity)
-            where T : class
+            where T : class, new()
         {
-            Set<T>().Add(Entity);
-            dbLogger.Output("Added " + typeof(T).ToString() + " to [" + GetTableName<T>(Entity) + "]:" + Entity.ToString());
-            SaveChanges();
+            db.Set<T>().Add(Entity);
+            Logger.Output("Added " + typeof(T).ToString() + " to [" + GetTableName<T>(Entity) + "]:" + Entity.ToString());
+            db.SaveChanges();
         }
 
         public string GetTableName<T>(T Entity)
             where T : class
         {
             Regex regex = new Regex("(?<=FROM \\[)[A-z]*(?=\\] AS)");
-            string match = regex.Match(Set<T>().ToString()).ToString();
+            string match = regex.Match(db.Set<T>().ToString()).ToString();
 
             return match;
+        }
+
+        public void SaveChanges()
+        {
+            db.SaveChanges();
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed)
+                return;
+
+            if (disposing)
+            {
+                //Dispose of the DBContext
+                db.Dispose();
+            }
+
+            disposed = true;
         }
 
         /// <summary>
         /// Builds the database, Note: This is a static build and this will not work if you change the entity model.
         /// EF6 and Code First do not play well with SQLite.
         /// </summary>
-        public void BuildDB()
+        public void InitOutput()
         {
             string create_TblMaster = @"CREATE TABLE [master](
                 [ID] integer NOT NULL,
@@ -110,7 +135,7 @@ namespace fileshare_utility
                 FOREIGN KEY (userID) REFERENCES [users](userID),
                 PRIMARY KEY (shareID, computerID, userID))";
 
-            using (SQLiteConnection dbConnection = new SQLiteConnection(Database.Connection.ConnectionString))
+            using (SQLiteConnection dbConnection = new SQLiteConnection(db.Database.Connection.ConnectionString))
             {
                 dbConnection.Open();
 

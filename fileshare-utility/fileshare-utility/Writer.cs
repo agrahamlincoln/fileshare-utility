@@ -22,9 +22,9 @@ namespace fileshare_utility
             return "Logger Version: v" + assemblyVersion;
         }
 
-        public void Output(string message, bool print)
+        public void Output(string message, bool OutputOverride)
         {
-            if (print)
+            if (OutputOverride)
             {
                 Output(message);
             }

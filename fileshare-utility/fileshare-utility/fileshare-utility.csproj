@@ -101,13 +101,13 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>DataModel.edmx</DependentUpon>
     </Compile>
-    <Compile Include="DataContext.cs" />
+    <Compile Include="DatabaseService.cs" />
     <Compile Include="DBObjects.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="FileLocations.cs" />
+    <Compile Include="IRepository.cs" />
     <Compile Include="IWriter.cs" />
     <Compile Include="FileWriter.cs" />
-    <Compile Include="MappedShare.cs" />
     <Compile Include="mapping.cs">
       <DependentUpon>DataModel.tt</DependentUpon>
     </Compile>

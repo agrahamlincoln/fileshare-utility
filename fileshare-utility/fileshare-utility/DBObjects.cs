@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -43,16 +44,27 @@ namespace fileshare_utility
             this.name = hostname.ToUpper();
         }
 
+        /// <summary>
+        /// Builds a Lambda expression to compare entities of this type
+        /// </summary>
+        /// <returns>Lambda expression to compare entities of this type</returns>
         public Expression<Func<computer, bool>> BuildExpression()
         {
             var entityType = typeof(computer);
             var propertyName = "hostname";
-            var thisValue = this.hostname;
+            var thisValue = this.hostname.ToUpper();
 
             ParameterExpression entity = Expression.Parameter(entityType, "x");
             MemberExpression entityProperty = Expression.Property(entity, propertyName);
             ConstantExpression thisProperty = Expression.Constant(thisValue, typeof(string));
-            Expression predicateBody = Expression.Equal(entityProperty, thisProperty);
+
+            //String.toLower() method)
+            MethodInfo toLower = typeof(string).GetMethod("ToLower", new Type[] { });
+
+            MethodCallExpression expr1 = Expression.Call(entityProperty, toLower);
+            MethodCallExpression expr2 = Expression.Call(thisProperty, toLower);
+
+            Expression predicateBody = Expression.Equal(expr1, expr2);
 
             var lambda = Expression.Lambda<Func<computer, bool>>(
                 predicateBody, 
@@ -118,6 +130,10 @@ namespace fileshare_utility
             this.date = DateTime.Now.ToString();
         }
 
+        /// <summary>
+        /// Builds a Lambda expression to compare entities of this type
+        /// </summary>
+        /// <returns>Lambda expression to compare entities of this type</returns>
         public Expression<Func<mapping, bool>> BuildExpression()
         {
             var entityType = typeof(mapping);
@@ -203,18 +219,29 @@ namespace fileshare_utility
             }
         }
 
+        /// <summary>
+        /// Builds a Lambda expression to compare entities of this type
+        /// </summary>
+        /// <returns>Lambda expression to compare entities of this type</returns>
         public Expression<Func<master, bool>> BuildExpression()
         {
             var entityType = typeof(master);
             var propertyName = "setting";
-            var thisValue = this.setting;
+            var thisValue = this.setting.ToUpper();
 
             ParameterExpression entity = Expression.Parameter(entityType, "x");
 
             MemberExpression entityProperty = Expression.Property(entity, propertyName);
             ConstantExpression thisProperty = Expression.Constant(thisValue, typeof(string));
 
-            BinaryExpression predicateBody = Expression.Equal(entityProperty, thisProperty);
+            //String.Equals(string str1) method)
+            MethodInfo toLower = typeof(string).GetMethod("ToLower", new Type[] { });
+
+            //Cast all properties to lower
+            MethodCallExpression entityPropLower = Expression.Call(entityProperty, toLower);
+            MethodCallExpression thisPropLower = Expression.Call(thisProperty, toLower);
+
+            BinaryExpression predicateBody = Expression.Equal(entityPropLower, thisPropLower);
 
             var lambda = Expression.Lambda<Func<master, bool>>(
                 predicateBody,
@@ -325,13 +352,17 @@ namespace fileshare_utility
             return resolved;
         }
 
+        /// <summary>
+        /// Builds a Lambda expression to compare entities of this type
+        /// </summary>
+        /// <returns>Lambda expression to compare entities of this type</returns>
         public Expression<Func<server, bool>> BuildExpression()
         {
             var entityType = typeof(server);
             var property1Name = "hostname";
             var property2Name = "domain";
-            var thisValue1 = this.hostname;
-            var thisValue2 = this.domain;
+            var thisValue1 = this.hostname.ToUpper();
+            var thisValue2 = this.domain.ToUpper();
 
             ParameterExpression entity = Expression.Parameter(entityType, "x");
 
@@ -340,9 +371,20 @@ namespace fileshare_utility
 
             MemberExpression entityProperty2 = Expression.Property(entity, property2Name);
             ConstantExpression thisProperty2 = Expression.Constant(thisValue2, typeof(string));
+            ConstantExpression StringComparisonOrdinalIgnoreCase = Expression.Constant(StringComparison.OrdinalIgnoreCase, typeof(StringComparison));
 
-            BinaryExpression expr1 = Expression.Equal(entityProperty1, thisProperty1);
-            BinaryExpression expr2 = Expression.Equal(entityProperty2, thisProperty2);
+            //String.ToLower method)
+            MethodInfo toLower = typeof(string).GetMethod("ToLower", new Type[] { });
+
+            //Cast all properties to lower
+            MethodCallExpression entProp1Lower = Expression.Call(entityProperty1, toLower);
+            MethodCallExpression thiProp1Lower = Expression.Call(thisProperty1, toLower);
+
+            MethodCallExpression entProp2Lower = Expression.Call(entityProperty2, toLower);
+            MethodCallExpression thiProp2Lower = Expression.Call(thisProperty2, toLower);
+
+            BinaryExpression expr1 = Expression.Equal(entProp1Lower, thiProp1Lower);
+            BinaryExpression expr2 = Expression.Equal(entProp2Lower, thiProp2Lower);
 
             Expression predicateBody = Expression.AndAlso(expr1, expr2);
 
@@ -368,7 +410,7 @@ namespace fileshare_utility
 
         public override string ToString()
         {
-            return this.hostname + "." + this.domain + " (" + serverID + ")";
+            return this.hostname + "." + this.domain;
         }
     }
 
@@ -388,6 +430,10 @@ namespace fileshare_utility
             this.active = true;
         }
 
+        /// <summary>
+        /// Builds a Lambda expression to compare entities of this type
+        /// </summary>
+        /// <returns>Lambda expression to compare entities of this type</returns>
         public Expression<Func<share, bool>> BuildExpression()
         {
             var entityType = typeof(share);
@@ -404,8 +450,15 @@ namespace fileshare_utility
             MemberExpression entityProperty2 = Expression.Property(entity, property2Name);
             ConstantExpression thisProperty2 = Expression.Constant(thisValue2, typeof(string));
 
+            //String.toLower() method)
+            MethodInfo toLower = typeof(string).GetMethod("ToLower", new Type[] { });
+
+            //Cast all properties to lower
+            MethodCallExpression entProp2Lower = Expression.Call(entityProperty2, toLower);
+            MethodCallExpression thiProp2Lower = Expression.Call(thisProperty2, toLower);
+
             BinaryExpression expr1 = Expression.Equal(entityProperty1, thisProperty1);
-            BinaryExpression expr2 = Expression.Equal(entityProperty2, thisProperty2);
+            BinaryExpression expr2 = Expression.Equal(entProp2Lower, thiProp2Lower);
 
             Expression predicateBody = Expression.AndAlso(expr1, expr2);
 
@@ -431,7 +484,7 @@ namespace fileshare_utility
 
         public override string ToString()
         {
-            return this.server.name + "\\" + this.shareName + " (" + this.shareID + ")";
+            return this.server.name + "\\" + this.shareName;
         }
     }
 
@@ -447,6 +500,10 @@ namespace fileshare_utility
             this.username = username;
         }
 
+        /// <summary>
+        /// Builds a Lambda expression to compare entities of this type
+        /// </summary>
+        /// <returns>Lambda expression to compare entities of this type</returns>
         public Expression<Func<user, bool>> BuildExpression()
         {
             var entityType = typeof(user);
@@ -456,7 +513,14 @@ namespace fileshare_utility
             ParameterExpression entity = Expression.Parameter(entityType, "x");
             MemberExpression entityProperty = Expression.Property(entity, propertyName);
             ConstantExpression thisProperty = Expression.Constant(thisValue, typeof(string));
-            Expression predicateBody = Expression.Equal(entityProperty, thisProperty);
+
+            //String.toLower() method)
+            MethodInfo toLower = typeof(string).GetMethod("ToLower", new Type[] { });
+
+            MethodCallExpression expr1 = Expression.Call(entityProperty, toLower);
+            MethodCallExpression expr2 = Expression.Call(thisProperty, toLower);
+
+            Expression predicateBody = Expression.Equal(expr1, expr2);
 
             var lambda = Expression.Lambda<Func<user, bool>>(
                 predicateBody,
@@ -478,7 +542,7 @@ namespace fileshare_utility
 
         public override string ToString()
         {
-            return this.username + " (" + this.userID + ")";
+            return this.username;
         }
     }
 }

@@ -16,13 +16,12 @@ namespace fileshare_utility
         {
             #region Instantiation
             // Program Variables
-            FileWriter FileLogger;                       // Run-Time log
-            FileWriter FileGlobalLog;                    // Unmapped/Discovered Drive log
+            FileWriter FileLogger;                  // Run-Time log
             List<NetworkConnection> mappedDrives;   // List of Mapped Network Drives
             FileLocations locations;                // Stores all FilePath and Directory locations
 
             // Entity Framework Objects
-            DataContext db;                         // Entity Framework Context
+            DatabaseService db;                     // Database Operator
 
             // Database Entity Objects
             user CurrentUser;                       // User of person executing app
@@ -35,9 +34,6 @@ namespace fileshare_utility
 
             // Logger Initialization
             FileLogger = new FileWriter();
-            FileGlobalLog = new FileWriter("Log.txt");
-
-            FileGlobalLog.filePath = locations.logDir;
             FileLogger.Header();
             FileLogger.Output("Global Log Path: " + locations.logDir);
 
@@ -54,9 +50,9 @@ namespace fileshare_utility
             }
 
             // Database Initialization
-            db = new DataContext(locations.dbDir);
+            db = new DatabaseService(locations.dbDir);
             if (!File.Exists(locations.dbPath))
-                db.BuildDB();
+                db.InitOutput();
 
             // Initialize Program Variables
             CurrentUser = db.FindOrInsert<user>(new user(Environment.UserName));
@@ -68,16 +64,19 @@ namespace fileshare_utility
 
             foreach (NetworkConnection NetCon in mappedDrives)
             {
+                server CurrentServer;
+                share CurrentShare;
+                mapping CurrentMapping;
+
                 FileLogger.Output("Now Processing: " + NetCon.ToString());
 
-                MappedShare MapShare = new MappedShare(NetCon);
-
+                //### PROCESS THE SERVER ###
                 //Add the server
-                server currentServer = db.FindOrInsert<server>(server.dnslookup(NetCon.GetServer()));
+                CurrentServer = db.FindOrInsert<server>(server.dnslookup(NetCon.GetServer()));
                 //Update the date of the server
-                currentServer.date = DateTime.Now.ToString();
+                CurrentServer.date = DateTime.Now.ToString();
 
-                if (!currentServer.active)
+                if (!CurrentServer.active)
                 {
                     NetCon.unmap();
                     UnmappedCount.increment();
@@ -85,13 +84,10 @@ namespace fileshare_utility
                     continue;
                 }
 
-                MapShare.mapping.share = new share(currentServer, NetCon.GetShareName());
+                //### PROCESS THE SHARE ###
+                CurrentShare = db.FindOrInsert<share>(new share(CurrentServer, NetCon.GetShareName()));
 
-                if (db.Get<share>(MapShare.mapping.share) == null)
-                {
-                    MapShare.mapping.share = db.FindOrInsert<share>(MapShare.mapping.share);
-                }
-                else if (!MapShare.mapping.share.server.active)
+                if (!CurrentShare.server.active)
                 {
                     NetCon.unmap();
                     UnmappedCount.increment();
@@ -99,8 +95,12 @@ namespace fileshare_utility
                     continue;
                 }
 
-                MapShare.mapping = db.FindOrInsert<mapping>(MapShare.mapping);
-                MapShare.mapping.date = DateTime.Now.ToString();
+                //### PROCESS THE MAPPING ###
+                //All the required entities are created and verified
+                CurrentMapping = new mapping(CurrentShare, CurrentUser, CurrentComputer, NetCon.LocalName, NetCon.UserName);
+
+                CurrentMapping = db.FindOrInsert<mapping>(CurrentMapping);
+                CurrentMapping.date = DateTime.Now.ToString();
             }
 
             //Save final changes

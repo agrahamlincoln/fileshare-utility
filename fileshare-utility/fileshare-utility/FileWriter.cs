@@ -22,12 +22,12 @@ namespace fileshare_utility
         /// <summary>No-Arg Constructor
         /// </summary>
         /// <remarks>Will default file path to user's AppData/Roaming folder</remarks>
-        public FileWriter() : this(getAppDataPath()) { }
+        public FileWriter() : this(getAppDataPath(), getProcessName() + "_log.txt") { }
 
         /// <summary>Single Argument Constructor
         /// </summary>
         /// <param name="filepath">Path of the log file</param>
-        public FileWriter(string filepath) : this(getAppDataPath(), getProcessName() + "_log.txt") { }
+        public FileWriter(string filepath) : this(filepath, getProcessName() + "_log.txt") { }
 
         /// <summary>Two-Argument Constructor
         /// </summary>
