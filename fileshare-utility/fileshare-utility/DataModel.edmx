@@ -165,7 +165,7 @@
             <PropertyRef Name="computerID" />
           </Key>
           <Property Name="computerID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
-          <Property Name="hostname" Type="String" MaxLength="15" Unicode="true" FixedLength="false" />
+          <Property Name="hostname" Type="String" MaxLength="15" Unicode="true" FixedLength="false" Nullable="true" a:GetterAccess="Private" xmlns:a="http://schemas.microsoft.com/ado/2006/04/codegeneration" a:SetterAccess="Private" />
           <NavigationProperty Name="mappings" Relationship="Model.FK_mappings_1_0" FromRole="computers" ToRole="mappings" />
         </EntityType>
         <EntityType Name="mapping">
@@ -197,7 +197,7 @@
             <PropertyRef Name="serverID" />
           </Key>
           <Property Name="serverID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
-          <Property Name="hostname" Type="String" MaxLength="15" Unicode="true" FixedLength="false" />
+          <Property Name="hostname" Type="String" MaxLength="15" Unicode="true" FixedLength="false" a:GetterAccess="Private" xmlns:a="http://schemas.microsoft.com/ado/2006/04/codegeneration" a:SetterAccess="Private" />
           <Property Name="active" Type="Boolean" Nullable="false" />
           <Property Name="domain" Type="String" MaxLength="255" Unicode="true" FixedLength="false" />
           <Property Name="date" Type="String" MaxLength="255" Unicode="true" FixedLength="false" />

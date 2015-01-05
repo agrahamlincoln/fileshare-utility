@@ -6,6 +6,7 @@ using System.Management;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using ExtensionMethods;
 
 namespace fileshare_utility
 {
@@ -13,156 +14,96 @@ namespace fileshare_utility
     {
         static void Main(string[] args)
         {
-            //Program Variables
-            LogWriter logger = new LogWriter();                                     // Run-Time log
-            LogWriter globalLog = new LogWriter("Log.txt");                         // Unmapped/Discovered Drive log
-            string runningPath;                                                     // Path of executed application
-            List<NetworkConnection> mappedDrives = new List<NetworkConnection>();   // List of Mapped Network Drives
+            #region Instantiation
+            // Program Variables
+            FileWriter FileLogger;                  // Run-Time log
+            List<NetworkConnection> mappedDrives;   // List of Mapped Network Drives
+            FileLocations locations;                // Stores all FilePath and Directory locations
 
-            //Entity Framework Objects
-            DataContext db = new DataContext();                                     // Entity Framework Context
-            DataOperator dataOper = new DataOperator(db);                           // For Mutators and Accessors
+            // Entity Framework Objects
+            DatabaseService db;                     // Database Operator
 
-            //Database Entity Objects
-            user CurrentUser;           //User of person executing app
-            computer CurrentComputer;   //Computer executing app
+            // Database Entity Objects
+            user CurrentUser;                       // User of person executing app
+            computer CurrentComputer;               // Computer executing app
+            master UnmappedCount;                   // Number of fileshares unmapped
+            #endregion
 
-            //Initialize Program Variables
-            runningPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-            globalLog.logPath = runningPath + "\\logs";
-            logger.header();
-            logger.Write("logpath: " + globalLog.logPath);
-            CurrentUser = dataOper.getUser(Environment.UserName);
-            CurrentComputer = dataOper.getComputer(Environment.MachineName);
+            #region Initialization
+            locations = new FileLocations();
 
-            //Add new user if not found
-            if (CurrentUser == null)
-            {
-                dataOper.Insert<user>(new user(Environment.UserName));
-                globalLog.Write("Added new user to [users]: " + Environment.UserName);
-                CurrentUser = dataOper.getUser(Environment.UserName);
-            }
+            // Logger Initialization
+            FileLogger = new FileWriter();
+            FileLogger.Header();
+            FileLogger.Output("Global Log Path: " + locations.logDir);
 
-            //Add new computer if not found
-            if (CurrentComputer == null)
-            {
-                dataOper.Insert<computer>(new computer(Environment.MachineName));
-                globalLog.Write("Added new computer to [computers]: " + Environment.MachineName);
-                CurrentComputer = dataOper.getComputer(Environment.MachineName);
-            }
-
-            //Get List of Network Connections from WMI
+            // Get Mapped Drives
+            mappedDrives = new List<NetworkConnection>();
             try
             {
-                mappedDrives = NetworkConnection.ListCurrentlyMappedDrives();
+                mappedDrives = NetworkConnection.ListCurrentlyMappedDrives().DNSable();
             }
             catch (ManagementException crap)
             {
-                logger.Write(crap.ToString());
+                FileLogger.Output(crap.ToString());
                 Environment.Exit(0);
             }
 
-            // Make sure all shares are added to the DB
-            logger.Write("=== List of Currently Mapped Drives ===");
-            List<server> servers = new List<server>();
-            List<share> shares = new List<share>();
+            // Database Initialization
+            db = new DatabaseService(locations.dbDir);
+            if (!File.Exists(locations.dbPath))
+                db.InitOutput();
+
+            // Initialize Program Variables
+            CurrentUser = db.FindOrInsert<user>(new user(Environment.UserName));
+            CurrentComputer = db.FindOrInsert<computer>(new computer(Environment.MachineName));
+            UnmappedCount = db.FindOrInsert<master>(new master("UnmappedCount"));
+            #endregion
+
+            FileLogger.Output("=== List of Currently Mapped Drives ===");
+
             foreach (NetworkConnection NetCon in mappedDrives)
             {
-                logger.Write("Now Processing: " + NetCon.ToString());
+                server CurrentServer;
+                share CurrentShare;
+                mapping CurrentMapping;
 
-                if (!servers.Exists(
-                    x => x.hostname.Equals(NetCon.ServerName, StringComparison.OrdinalIgnoreCase)
-                    ))
+                FileLogger.Output("Now Processing: " + NetCon.ToString());
+
+                //### PROCESS THE SERVER ###
+                //Add the server
+                CurrentServer = db.FindOrInsert<server>(server.dnslookup(NetCon.GetServer()));
+                //Update the date of the server
+                CurrentServer.date = DateTime.Now.ToString();
+
+                if (!CurrentServer.active)
                 {
-                    //server is not in current list.
-                    server dnsSrvr;
-                    try
-                    {
-                        dnsSrvr = server.dnslookup(NetCon.ServerName);
-
-                        //query database and add if necessary.
-                        var dbSrvr = dataOper.getServer(dnsSrvr.hostname, dnsSrvr.domain);
-
-                        if (dbSrvr == null)
-                        {
-                            //server was not found; add to Database.
-                            dataOper.Insert<server>(dnsSrvr);
-                            globalLog.Write("Added new Server to [servers]: " + dnsSrvr.hostname + dnsSrvr.domain);
-                        }
-                        servers.Add(dataOper.getServer(dnsSrvr.hostname, dnsSrvr.domain));
-                    }
-                    catch (SocketException)
-                    {
-                        logger.Write("Could not resolve hostname: " + NetCon.ServerName);
-                        //Skip to next network connection
-                        continue;
-                    }
-                    catch (Exception crap)
-                    {
-                        logger.Write("An unexpected error occurred: " + crap.ToString());
-                        continue;
-                    }
-                }
-                
-                server currentServer = servers.FirstOrDefault(
-                    x => x.hostname.Equals(NetCon.ServerName, StringComparison.OrdinalIgnoreCase)
-                );
-
-                share fileshare = dataOper.getShare(currentServer.serverID, NetCon.ShareName);
-
-                if (fileshare == null)
-                {
-                    fileshare = new share(currentServer, NetCon.ShareName);
-                    dataOper.Insert<share>(fileshare);
-                    globalLog.Write("Added new Share to [shares]: " + fileshare.server.hostname + "\\" + fileshare.shareName);
-
-                    //Re-Get the share
-                    fileshare = dataOper.getShare(currentServer.serverID, NetCon.ShareName);
+                    NetCon.unmap();
+                    UnmappedCount.increment();
+                    FileLogger.Output("Unmapping Fileshare: " + NetCon.ToString());
+                    continue;
                 }
 
-                shares.Add(fileshare);
-            }
+                //### PROCESS THE SHARE ###
+                CurrentShare = db.FindOrInsert<share>(new share(CurrentServer, NetCon.GetShareName()));
 
-            List<mapping> mappedList = new List<mapping>();
-            //Query the DB and get all mappings
-            //all mappings of the current user and computer
-            IQueryable<mapping> dbMappings = db.mappings.Where<mapping>(
-            x => x.computerID == CurrentComputer.computerID &&
-                 x.userID == CurrentUser.userID
-            );
-
-            foreach (share fileshare in shares)
-            {
-                mapping map = dbMappings.FirstOrDefault<mapping>(x => x.shareID == fileshare.shareID);
-
-                if (map == null)
+                if (!CurrentShare.server.active)
                 {
-                    NetworkConnection NetCon = mappedDrives.Find(
-                        x => x.ServerName.Equals(fileshare.server.hostname, StringComparison.OrdinalIgnoreCase) &&
-                             x.ShareName.Equals(fileshare.shareName, StringComparison.OrdinalIgnoreCase)
-                        );
-                    map = new mapping(fileshare, CurrentUser, CurrentComputer, NetCon.LocalName, NetCon.UserName);
-
-                    dataOper.Insert<mapping>(map);
-                    logger.Write("Added new Mapping to [mappings]: " + CurrentUser.username + "@" + CurrentComputer.hostname + ": " + map.letter + ": " + map.share.server.hostname + "\\" + map.share.shareName);
-                    map = dataOper.getMapping(fileshare.shareID, CurrentUser.userID, CurrentComputer.computerID);
+                    NetCon.unmap();
+                    UnmappedCount.increment();
+                    FileLogger.Output("Unmapping Fileshare: " + NetCon.ToString());
+                    continue;
                 }
 
-                mappedList.Add(map);
+                //### PROCESS THE MAPPING ###
+                //All the required entities are created and verified
+                CurrentMapping = new mapping(CurrentShare, CurrentUser, CurrentComputer, NetCon.LocalName, NetCon.UserName);
+
+                CurrentMapping = db.FindOrInsert<mapping>(CurrentMapping);
+                CurrentMapping.date = DateTime.Now.ToString();
             }
 
-            //update date field on found servers and found mappings.
-            string now = DateTime.Now.ToString();
-            foreach (mapping map in mappedList)
-            {
-                map.date = now;
-            }
-
-            foreach (server srvr in servers)
-            {
-                srvr.date = now;
-            }
-
+            //Save final changes
             db.SaveChanges();
         }
     }

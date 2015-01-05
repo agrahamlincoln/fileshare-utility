@@ -20,7 +20,7 @@ namespace fileshare_utility
         }
     
         public long computerID { get; set; }
-        public string hostname { get; set; }
+        private string hostname { get; set; }
     
         public virtual ICollection<mapping> mappings { get; set; }
     }

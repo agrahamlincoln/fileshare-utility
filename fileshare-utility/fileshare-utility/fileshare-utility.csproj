@@ -101,9 +101,13 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>DataModel.edmx</DependentUpon>
     </Compile>
-    <Compile Include="DataOperator.cs" />
+    <Compile Include="DatabaseService.cs" />
     <Compile Include="DBObjects.cs" />
-    <Compile Include="LogWriter.cs" />
+    <Compile Include="Extensions.cs" />
+    <Compile Include="FileLocations.cs" />
+    <Compile Include="IRepository.cs" />
+    <Compile Include="IWriter.cs" />
+    <Compile Include="FileWriter.cs" />
     <Compile Include="mapping.cs">
       <DependentUpon>DataModel.tt</DependentUpon>
     </Compile>
@@ -122,7 +126,7 @@
     <Compile Include="user.cs">
       <DependentUpon>DataModel.tt</DependentUpon>
     </Compile>
-    <Compile Include="Utilities.cs" />
+    <Compile Include="Writer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">
