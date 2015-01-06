@@ -198,7 +198,7 @@ namespace fileshare_utility
             return Name;
         }
 
-        public string GetServer()
+        public string GetServerHostname()
         {
             var arry = RemotePath.Split('\\');
             return arry[2];

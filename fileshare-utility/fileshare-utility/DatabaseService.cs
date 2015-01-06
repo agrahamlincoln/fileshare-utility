@@ -32,6 +32,27 @@ namespace fileshare_utility
             return db.Set<T>().FirstOrDefault<T>(Entity.BuildExpression());
         }
 
+        /// <summary>
+        /// Queries the Database for a Server Object based off Hostname.
+        /// </summary>
+        /// <param name="hostname">Hostname of the server in the Database</param>
+        /// <returns>Server object found from the Database</returns>
+        /// <exception cref="KeyNotFoundException">Throws when the specified server is not found in the database</exception>
+        public server FindServer(string hostname)
+        {
+            server foundserver;
+            try
+            {
+                foundserver = db.Set<server>().First(x => x.name == hostname.ToUpper());
+            }
+            catch (InvalidOperationException)
+            {
+                KeyNotFoundException crap = new KeyNotFoundException("The specifed Host was not found in the Database");
+                throw crap;
+            }
+            return foundserver;
+        }
+
         public T FindOrInsert<T>(T Entity)
             where T : class, Entity<T>, new()
         {
@@ -107,11 +128,11 @@ namespace fileshare_utility
                 PRIMARY KEY(userID))";
             string create_TblComputers = @"CREATE TABLE [computers](
                 [computerID] integer NOT NULL,
-                [hostname] VARCHAR(15),
+                [hostname] VARCHAR(" + computer.MAX_CHARACTERS_HOSTNAME + @"),
                 PRIMARY KEY(computerID))";
             string create_TblServers = @"CREATE TABLE [servers](
                 [serverID] integer NOT NULL,
-                [hostname] VARCHAR(15),
+                [hostname] VARCHAR(" + server.MAX_CHARACTERS_HOSTNAME + @"),
                 [active] boolean NOT NULL,
                 [domain] VARCHAR(255),
                 [date] VARCHAR(255),

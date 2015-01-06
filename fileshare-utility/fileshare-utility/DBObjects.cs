@@ -184,7 +184,7 @@ namespace fileshare_utility
 
         public override string ToString()
         {
-            return this.user.ToString() + "@" + this.computer.ToString() + ": " + this.letter + " " + this.share.ToString();
+            return String.Format("{0,15}@{1,-15} - {2,2} {3,35}", this.user.ToString(), this.computer.ToString(), this.letter, this.share.ToString());
         }
     }
 
@@ -283,6 +283,12 @@ namespace fileshare_utility
     {
         public const int MAX_CHARACTERS_HOSTNAME = 15;
 
+        /// <summary>
+        /// Whether a DNS Lookup has been performed or not
+        /// </summary>
+        public bool DNSLookupPerformed { get; private set; }
+        public bool DNSLookupSuccess { get; private set; }
+
         public string name
         {
             get
@@ -291,7 +297,7 @@ namespace fileshare_utility
             }
             set
             {
-                var newHostName = value;
+                var newHostName = value.ToUpper();
                 if (newHostName.Length > MAX_CHARACTERS_HOSTNAME)
                     newHostName = newHostName.Substring(0, MAX_CHARACTERS_HOSTNAME);
                 hostname = newHostName;
@@ -303,12 +309,13 @@ namespace fileshare_utility
         /// <param name="srvr">server object to copy</param>
         public server(server srvr)
         {
+            this.DNSLookupSuccess = false;
+            this.DNSLookupPerformed = false;
             this.serverID = srvr.serverID;
             this.name = srvr.hostname.ToUpper();
             this.domain = srvr.domain;
             this.active = srvr.active;
             this.date = srvr.date;
-            this.shares = srvr.shares;
         }
 
         /// <summary>
@@ -319,10 +326,31 @@ namespace fileshare_utility
         public server(string hostname, string domain)
             : this()
         {
+            this.DNSLookupSuccess = false;
+            this.DNSLookupPerformed = false;
             this.name = hostname.ToUpper();
             this.domain = domain;
             this.active = true;
             this.date = DateTime.Now.ToString();
+        }
+
+        /// <summary>
+        /// Updates the current object to have the Hostname and Domain from DNS
+        /// </summary>
+        public void DNSUpdate()
+        {
+            try
+            {
+                server tempServer = dnslookup(this.name);
+                this.name = tempServer.name;
+                this.domain = tempServer.domain;
+                DNSLookupSuccess = true;
+            }
+            catch (SocketException)
+            {
+                DNSLookupSuccess = false;
+            }
+            DNSLookupPerformed = true;
         }
 
         /// <summary>
@@ -337,7 +365,7 @@ namespace fileshare_utility
         public static server dnslookup(string address)
         {
             server resolved = null;
-
+            
             IPHostEntry hostEntry;
             hostEntry = Dns.GetHostEntry(address.ToUpper());
 

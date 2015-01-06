@@ -14,9 +14,9 @@ namespace ExtensionMethods
         public static List<string> DistinctServers(this List<fileshare_utility.NetworkConnection> NetConList)
         {
              List<string> distinctServers = NetConList
-                .GroupBy(x => x.GetServer())
+                .GroupBy(x => x.GetServerHostname())
                 .Select(y => y.First())
-                .Select(z => z.GetServer())
+                .Select(z => z.GetServerHostname())
                 .ToList();
 
              return distinctServers;
@@ -42,7 +42,7 @@ namespace ExtensionMethods
             }
 
             return NetConList.Where(
-                x => resolvedServers.Contains(x.GetServer().ToUpper())
+                x => resolvedServers.Contains(x.GetServerHostname().ToUpper())
                 )
                 .ToList();
         }

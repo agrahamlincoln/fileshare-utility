@@ -15,7 +15,7 @@ namespace fileshare_utility
     {
 
         // Class Variables
-        public string filePath { get; set; }                 // Path of the log file
+        public string filePath { get; set; }                // Path of the log file
         public string fileName { get; set; }                // Filename of the log file
 
         #region Constructors
@@ -88,10 +88,12 @@ namespace fileshare_utility
             }
             else
             {
-                StreamWriter sWriter = new StreamWriter(logLocation, true);
-                sWriter.WriteLine(GetTimestamp(DateTime.Now) + "\t" + message);
+                using (StreamWriter sw = new StreamWriter(logLocation, true))
+                {
+                    sw.WriteLine(GetTimestamp(DateTime.Now) + "\t" + message);
 
-                sWriter.Close();
+                    sw.Close();
+                }
             }
         }
         #endregion
