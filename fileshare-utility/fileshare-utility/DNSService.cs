@@ -29,7 +29,7 @@ namespace fileshare_utility
             Tuple<string, string> Result;
 
             //Verify that the DNS Lookup has not been performed before
-            if (AttemptedLookups.ContainsKey(address))
+            try
             {
                 KeyValuePair<string, bool> PreviousAttempt =
                     AttemptedLookups.First(x => x.Key.Equals(address, StringComparison.OrdinalIgnoreCase));
@@ -45,7 +45,7 @@ namespace fileshare_utility
                     throw new InvalidOperationException("A DNS Lookup previously failed to resolve this address: " + address);
                 }
             }
-            else
+            catch (InvalidOperationException)
             {
                 //Perform a new DNS Lookup on this host
                 IPHostEntry hostEntry;
