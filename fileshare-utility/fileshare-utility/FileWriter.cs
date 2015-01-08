@@ -35,6 +35,8 @@ namespace fileshare_utility
         /// <param name="fileName">Name of the log file</param>
         public FileWriter(string filepath, string fileName)
         {
+            this.username = Environment.UserName;
+            this.computername = Environment.MachineName;
             this.filePath = filepath;
             this.fileName = fileName;
             this.assemblyVersion = GetAssemblyVersion();
