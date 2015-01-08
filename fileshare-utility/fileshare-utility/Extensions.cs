@@ -27,17 +27,20 @@ namespace ExtensionMethods
             List<string> distinctServers = NetConList.DistinctServers();
             List<string> resolvedServers = new List<string>();
 
-            foreach (string hostname in distinctServers)
+            using (DNSService dns = new DNSService())
             {
-                try
+                foreach (string hostname in distinctServers)
                 {
-                    Dns.GetHostEntry(hostname.ToUpper());
-                    resolvedServers.Add(hostname);
-                }
-                catch (SocketException)
-                {
-                    //host did not resolve
-                    continue;
+                    try
+                    {
+                        dns.lookup(hostname);
+                        resolvedServers.Add(hostname);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        //host did not resolve
+                        continue;
+                    }
                 }
             }
 

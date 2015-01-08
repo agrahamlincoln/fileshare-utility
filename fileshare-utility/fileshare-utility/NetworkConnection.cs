@@ -21,6 +21,8 @@ namespace fileshare_utility
         private static extern int WNetCancelConnection2A(string psName, int piFlags, int pfForce);
         private const int CONNECT_UPDATE_PROFILE = 0x00000001;
 
+        public bool Unmapped { get; private set; }
+
         //Class Variables
         public UInt32 AccessMask { get; private set; }      // ListofAccess rights  (ex: 1179785)
         public string Caption { get; private set; }         // Short Description    (ex: 'RESOURCE REMEMBERED')
@@ -61,6 +63,7 @@ namespace fileshare_utility
 
         public NetworkConnection(NetworkConnection NetCon)
         {
+            this.Unmapped = NetCon.Unmapped;
             this.AccessMask =       NetCon.AccessMask;
             this.Caption =          NetCon.Caption;
             this.Comment =          NetCon.Comment;
@@ -118,6 +121,8 @@ namespace fileshare_utility
             this.ResourceType = ResourceType;
             this.Status = Status;
             this.UserName = UserName;
+
+            this.Unmapped = false;
         }
         #endregion
 
@@ -182,12 +187,18 @@ namespace fileshare_utility
         /// <remarks>This code was used from aejw's Network Drive class: build 0015 05/14/2004 aejw.com</remarks>
         internal void unmap()
         {
-            bool force = false;
-            //call unmap and return
-            int iFlags = 0;
-            if (Persistent) { iFlags += CONNECT_UPDATE_PROFILE; }
-            int i = WNetCancelConnection2A(LocalName, iFlags, Convert.ToInt32(force));
-            if (i > 0) { throw new System.ComponentModel.Win32Exception(i); }
+            if (Unmapped)
+                return;
+            else
+            {
+                bool force = false;
+                //call unmap and return
+                int iFlags = 0;
+                if (Persistent) { iFlags += CONNECT_UPDATE_PROFILE; }
+                int i = WNetCancelConnection2A(LocalName, iFlags, Convert.ToInt32(force));
+                if (i > 0) { throw new System.ComponentModel.Win32Exception(i); }
+                Unmapped = true;
+            }
         }
 
         /// <summary>To String method.

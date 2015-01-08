@@ -103,6 +103,7 @@
     </Compile>
     <Compile Include="DatabaseService.cs" />
     <Compile Include="DBObjects.cs" />
+    <Compile Include="DNSService.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="FileLocations.cs" />
     <Compile Include="IRepository.cs" />

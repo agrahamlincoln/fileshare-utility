@@ -75,7 +75,7 @@ namespace fileshare_utility
                 {
                     //Look in the local list first
                     CurrentServer = DistinctServers.First(x => x.name == NetCon.GetServerHostname().ToUpper());
-                    VerifyServerAndUnmapInactives(CurrentServer, NetCon, UnmappedCount, FileLogger);
+                    VerifyServerAndUnmapInactives(CurrentServer, NetCon, ref UnmappedCount, FileLogger);
                 }
                 catch (InvalidOperationException)
                 {
@@ -83,12 +83,12 @@ namespace fileshare_utility
                     {
                         //Look in the Database
                         CurrentServer = db.FindServer(NetCon.GetServerHostname());
-                        VerifyServerAndUnmapInactives(CurrentServer, NetCon, UnmappedCount, FileLogger);
+                        VerifyServerAndUnmapInactives(CurrentServer, NetCon, ref UnmappedCount, FileLogger);
 
                         //Add this server to the local list of servers
                         DistinctServers.Add(CurrentServer);
                     }
-                    catch (InvalidOperationException)
+                    catch (KeyNotFoundException)
                     {
                         //Server is not in the DB
                         FileLogger.Output("Mapping with Non-Resolvable, Unknown server found: " + NetCon.ToString());
@@ -102,21 +102,30 @@ namespace fileshare_utility
                 server CurrentServer;
                 share CurrentShare;
                 mapping CurrentMapping;
+                Tuple<string, string> HostInfo;
 
                 FileLogger.Output("Now Processing: " + NetCon.ToString());
 
                 //### PROCESS THE SERVER ###
                 //Add the server
-                CurrentServer = db.FindOrInsert<server>(server.dnslookup(NetCon.GetServerHostname()));
-                //Update the date of the server
-                CurrentServer.date = DateTime.Now.ToString();
-
-                if (!CurrentServer.active)
+                using (DNSService dns = new DNSService())
                 {
-                    NetCon.unmap();
-                    UnmappedCount.increment();
-                    FileLogger.Output("Unmapping Fileshare: " + NetCon.ToString());
-                    continue;
+                    try
+                    {
+                        HostInfo = dns.lookup(NetCon.GetServerHostname());
+                        CurrentServer = db.FindOrInsert<server>(new server(HostInfo.Item1, HostInfo.Item2));
+                        //Update the date of the server
+                        CurrentServer.date = DateTime.Now.ToString();
+
+                        VerifyServerAndUnmapInactives(CurrentServer, NetCon, ref UnmappedCount, FileLogger);
+                        if (NetCon.Unmapped)
+                            continue;
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        //Failed to Lookup the Server
+                        continue;
+                    }
                 }
 
                 //### PROCESS THE SHARE ###
@@ -142,7 +151,7 @@ namespace fileshare_utility
             db.SaveChanges();
         }
 
-        private static void VerifyServerAndUnmapInactives(server server, NetworkConnection NetCon, master UnmappedCount, IWriter output)
+        private static void VerifyServerAndUnmapInactives(server server, NetworkConnection NetCon, ref master UnmappedCount, IWriter output)
         {
             if (!server.active)
             {

@@ -283,12 +283,6 @@ namespace fileshare_utility
     {
         public const int MAX_CHARACTERS_HOSTNAME = 15;
 
-        /// <summary>
-        /// Whether a DNS Lookup has been performed or not
-        /// </summary>
-        public bool DNSLookupPerformed { get; private set; }
-        public bool DNSLookupSuccess { get; private set; }
-
         public string name
         {
             get
@@ -309,8 +303,6 @@ namespace fileshare_utility
         /// <param name="srvr">server object to copy</param>
         public server(server srvr)
         {
-            this.DNSLookupSuccess = false;
-            this.DNSLookupPerformed = false;
             this.serverID = srvr.serverID;
             this.name = srvr.hostname.ToUpper();
             this.domain = srvr.domain;
@@ -326,8 +318,6 @@ namespace fileshare_utility
         public server(string hostname, string domain)
             : this()
         {
-            this.DNSLookupSuccess = false;
-            this.DNSLookupPerformed = false;
             this.name = hostname.ToUpper();
             this.domain = domain;
             this.active = true;
@@ -339,45 +329,19 @@ namespace fileshare_utility
         /// </summary>
         public void DNSUpdate()
         {
-            try
+            using (DNSService dns = new DNSService())
             {
-                server tempServer = dnslookup(this.name);
-                this.name = tempServer.name;
-                this.domain = tempServer.domain;
-                DNSLookupSuccess = true;
+                try
+                {
+                    var Resolved = dns.lookup(this.name);
+                    this.name = Resolved.Item1;
+                    this.domain = Resolved.Item2;
+                }
+                catch (InvalidOperationException)
+                {
+                    return;
+                }
             }
-            catch (SocketException)
-            {
-                DNSLookupSuccess = false;
-            }
-            DNSLookupPerformed = true;
-        }
-
-        /// <summary>
-        /// Performs a DNS lookup on an address and returns a server object
-        /// </summary>
-        /// <param name="address">IP Address/Hostname of a server</param>
-        /// <returns>null if not resolved; server object representing the resolved host.</returns>
-        /// <exception cref="ArgumentNullException">Argument is null</exception>
-        /// <exception cref="ArgumentOutOfRangeException">Argument is more than 255 chars</exception>
-        /// <exception cref="SocketException">Host was not resolvable</exception>
-        /// <exception cref="ArgumentException">Invalid IP Address</exception>
-        public static server dnslookup(string address)
-        {
-            server resolved = null;
-            
-            IPHostEntry hostEntry;
-            hostEntry = Dns.GetHostEntry(address.ToUpper());
-
-            var host = hostEntry.HostName.Split('.').ToList<string>();
-
-            var name = host.ElementAt(0);
-            host.RemoveAt(0);
-            var domain = String.Join(".", host.ToArray());
-
-            resolved = new server(name, domain);
-
-            return resolved;
         }
 
         /// <summary>
