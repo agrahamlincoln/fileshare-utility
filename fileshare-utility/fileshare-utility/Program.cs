@@ -37,11 +37,10 @@ namespace fileshare_utility
 
             // Logger Initialization
             FileLogger = new FileWriter();
-            FileLogger.Header();
+            FileLogger.Output(FileLogger.Header());
             FileLogger.Output("Global Log Path: " + locations.logDir);
 
             // Get Mapped Drives
-            AllMappedDrives = new List<NetworkConnection>();
             try
             {
                 AllMappedDrives = NetworkConnection.ListCurrentlyMappedDrives();
@@ -49,7 +48,7 @@ namespace fileshare_utility
             catch (ManagementException crap)
             {
                 FileLogger.Output(crap.ToString());
-                Environment.Exit(0);
+                return;
             }
             ResolvedMappedDrives = AllMappedDrives.DNSable();
 
@@ -75,7 +74,7 @@ namespace fileshare_utility
                 {
                     //Look in the local list first
                     CurrentServer = DistinctServers.First(x => x.name == NetCon.GetServerHostname().ToUpper());
-                    VerifyServerAndUnmapInactives(CurrentServer, NetCon, ref UnmappedCount, FileLogger);
+                    VerifyServerAndUnmapInactives(CurrentServer.active, NetCon, ref UnmappedCount, FileLogger);
                 }
                 catch (InvalidOperationException)
                 {
@@ -83,7 +82,7 @@ namespace fileshare_utility
                     {
                         //Look in the Database
                         CurrentServer = db.FindServer(NetCon.GetServerHostname());
-                        VerifyServerAndUnmapInactives(CurrentServer, NetCon, ref UnmappedCount, FileLogger);
+                        VerifyServerAndUnmapInactives(CurrentServer.active, NetCon, ref UnmappedCount, FileLogger);
 
                         //Add this server to the local list of servers
                         DistinctServers.Add(CurrentServer);
@@ -110,34 +109,22 @@ namespace fileshare_utility
                 //Add the server
                 using (DNSService dns = new DNSService())
                 {
-                    try
-                    {
-                        HostInfo = dns.lookup(NetCon.GetServerHostname());
-                        CurrentServer = db.FindOrInsert<server>(new server(HostInfo.Item1, HostInfo.Item2));
-                        //Update the date of the server
-                        CurrentServer.date = DateTime.Now.ToString();
+                    HostInfo = dns.lookup(NetCon.GetServerHostname());
+                    CurrentServer = db.FindOrInsert<server>(new server(HostInfo.Item1, HostInfo.Item2));
+                    //Update the date of the server
+                    CurrentServer.date = DateTime.Now.ToString();
 
-                        VerifyServerAndUnmapInactives(CurrentServer, NetCon, ref UnmappedCount, FileLogger);
-                        if (NetCon.Unmapped)
-                            continue;
-                    }
-                    catch (InvalidOperationException)
-                    {
-                        //Failed to Lookup the Server
+                    VerifyServerAndUnmapInactives(CurrentServer.active, NetCon, ref UnmappedCount, FileLogger);
+                    if (NetCon.Unmapped)
                         continue;
-                    }
                 }
 
                 //### PROCESS THE SHARE ###
                 CurrentShare = db.FindOrInsert<share>(new share(CurrentServer, NetCon.GetShareName()));
 
-                if (!CurrentShare.server.active)
-                {
-                    NetCon.unmap();
-                    UnmappedCount.increment();
-                    FileLogger.Output("Unmapping Fileshare: " + NetCon.ToString());
-                    continue;
-                }
+                VerifyServerAndUnmapInactives(CurrentShare.active, NetCon, ref UnmappedCount, FileLogger);
+                if (NetCon.Unmapped)
+                    continue;   
 
                 //### PROCESS THE MAPPING ###
                 //All the required entities are created and verified
@@ -151,9 +138,9 @@ namespace fileshare_utility
             db.SaveChanges();
         }
 
-        private static void VerifyServerAndUnmapInactives(server server, NetworkConnection NetCon, ref master UnmappedCount, IWriter output)
+        private static void VerifyServerAndUnmapInactives(bool Active, NetworkConnection NetCon, ref master UnmappedCount, IWriter output)
         {
-            if (!server.active)
+            if (!Active)
             {
                 NetCon.unmap();
                 UnmappedCount.increment();
